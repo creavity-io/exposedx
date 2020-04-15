@@ -27,7 +27,6 @@ internal fun <T> localTransaction(statement: Transaction.() -> T): T {
 
 interface EntityQuery<ID : Comparable<ID>, E : Entity<ID>, T: EntityManager<ID, E, *>> {
     val rawQuery: Query
-    val entityQuery: EntityQuery<ID, E, T>
     operator fun iterator() : Iterator<E>
     fun filter(op: Op<Boolean>): EntityQuery<ID, E, T>
     fun exclude(op: Op<Boolean>): EntityQuery<ID, E, T>
@@ -81,13 +80,13 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
     private val selectRelatedTables = mutableSetOf<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>()
     private val prefetchRelatedTables = mutableSetOf<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>()
 
-    override fun limit(size: Int, offset: Long) = entityQuery.apply { rawQuery.limit(size, offset) }
+    override fun limit(size: Int, offset: Long): EntityQuery<ID, E, T> = entityQuery.apply { rawQuery.limit(size, offset) }
 
     override fun count() = localTransaction { rawQuery.notForUpdate().count() }
 
     override fun empty() = localTransaction { rawQuery.empty() }
 
-    override fun orderBy(column: Expression<*>, order: SortOrder) = orderBy(column to order)
+    override fun orderBy(column: Expression<*>, order: SortOrder): EntityQuery<ID, E, T> = orderBy(column to order)
 
     override fun orderBy(vararg sort: String): EntityQuery<ID, E, T> {
         return orderBy(*sort.map {
@@ -111,7 +110,7 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
     /*
     * Get every direct column that we have to prefetch.
     * */
-    fun getColumnsToPrefetch(): LinkedHashMap<Column<*>, MutableList<EntityID<Comparable<Any>>>> {
+    private fun getColumnsToPrefetch(): LinkedHashMap<Column<*>, MutableList<EntityID<Comparable<Any>>>> {
         val relatedcolumnsToFetch = linkedMapOf<Column<*>, MutableList<EntityID<Comparable<Any>>>>()
         prefetchRelatedTables.forEach {// todo: refactor, move this to other place.
             var table = it
@@ -128,7 +127,7 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
     }
 
 
-    fun joinWithSelectRelated() {
+    private fun joinWithSelectRelated() {
         selectRelatedTables.forEach { // todo: refactor, move this to other place.
             var table = it
 
@@ -142,7 +141,7 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
         }
     }
 
-    fun fetchElements(): Iterator<E> = localTransaction {
+    private fun fetchElements(): Iterator<E> = localTransaction {
         joinWithSelectRelated()
 
         val relatedcolumnsToFetch = getColumnsToPrefetch()
@@ -170,11 +169,11 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
         elements!!.iterator()
     }
 
-    fun execQuery(): Sequence<ResultRow> = rawQuery.asSequence()
+    private fun execQuery(): Sequence<ResultRow> = rawQuery.asSequence()
 
-    override fun all() = fetchElements().let { EntitySizedIterable(this) }
+    override fun all(): EntitySizedIterable<ID, E> = fetchElements().let { EntitySizedIterable(this) }
 
-    override fun forUpdate() = entityQuery.apply { rawQuery.forUpdate() }
+    override fun forUpdate(): EntityQuery<ID, E, T> = entityQuery.apply { rawQuery.forUpdate() }
 
     override fun update(body: T.(UpdateStatement) -> Unit) = localTransaction {
         rawQuery.where?.let {
@@ -216,18 +215,18 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
         where.forEach { exclude(it) }
     }
 
-    override fun selectRelated(vararg tables: EntityManager<*,*,*>) = entityQuery.apply {
+    override fun selectRelated(vararg tables: EntityManager<*,*,*>): EntityQuery<ID, E, T> = entityQuery.apply {
         this.selectRelatedTables += tables.asList() as Collection<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>
     }
 
-    override fun prefetchRelated(vararg tables: EntityManager<*,*,*>) = entityQuery.apply {
+    override fun prefetchRelated(vararg tables: EntityManager<*,*,*>): EntityQuery<ID, E, T> = entityQuery.apply {
         this.prefetchRelatedTables += tables.asList() as Collection<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>
     }
 
-    override fun filterByEntityIds(ids: List<EntityID<ID>>) = filter { entityManager.originalId inList ids }
-    override fun filter(ids: List<ID>) = filterByEntityIds(ids.map { DaoEntityID(it, entityManager) })
-    override fun get(id: EntityID<ID>) = localTransaction { filterByEntityIds(listOf(id)).all().firstOrNull() }
-    override fun get(id: ID) = localTransaction { filter(listOf(id)).all().firstOrNull() }
+    override fun filterByEntityIds(ids: List<EntityID<ID>>): EntityQuery<ID, E, T> = filter { entityManager.originalId inList ids }
+    override fun filter(ids: List<ID>): EntityQuery<ID, E, T> = filterByEntityIds(ids.map { DaoEntityID(it, entityManager) })
+    override fun get(id: EntityID<ID>): E? = localTransaction { filterByEntityIds(listOf(id)).all().firstOrNull() }
+    override fun get(id: ID): E? = localTransaction { filter(listOf(id)).all().firstOrNull() }
 
     override fun delete(): Int = localTransaction {
         if (!rawQuery.groupedByColumns.isEmpty() || rawQuery.having != null) throw Exception("Cant delete with group by or having.")
@@ -243,7 +242,7 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
 
     override fun groupBy(vararg columns: Expression<*>) = rawQuery.groupBy(*columns)
 
-    override fun copy() =
+    override fun copy(): EntityQueryBase<ID, E, T> =
             selfConstructor.newInstance(entityManager, rawQuery.copy()).also {
                 it.selectRelatedTables.addAll(this.selectRelatedTables)
                 it.prefetchRelatedTables.addAll(this.prefetchRelatedTables)
@@ -259,14 +258,13 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
     }
 
     /**
-     * Cada vez que se ejecuta un filtro se copiia y devuelve un nuevo objeto, si no copiara el objeto, estas querys se unirían.
+     * Cada vez que se ejecuta un filtro se copia y devuelve un nuevo objeto, si no copiara el objeto, estas querys se unirían.
      *
      * query = users.objects.filter { isDeleted eq True }
      * users.filter { name like "A%" }
      * users.filter { name like "B%" } // al modificar la misma query devolverían name = "A" and name = "B"
      */
-    override val entityQuery: EntityQueryBase<ID, E, T> get() = copy()
-
+    private val entityQuery: EntityQueryBase<ID, E, T> get() = copy()
 }
 
 

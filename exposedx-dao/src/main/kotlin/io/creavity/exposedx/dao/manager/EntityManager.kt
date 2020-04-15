@@ -4,6 +4,7 @@ import org.jetbrains.exposed.dao.id.EntityID
 import io.creavity.exposedx.dao.entities.Entity
 import org.jetbrains.exposed.dao.id.IdTable
 import io.creavity.exposedx.dao.exceptions.EntityNotFoundException
+import io.creavity.exposedx.dao.queryset.EntityQuery
 import io.creavity.exposedx.dao.queryset.EntityQueryBase
 import io.creavity.exposedx.dao.queryset.joinWithParent
 import io.creavity.exposedx.dao.queryset.localTransaction
@@ -57,7 +58,7 @@ abstract class EntityManager<ID : Comparable<ID>, E : Entity<ID>, M : EntityMana
 
     private val ctor = klass.constructors.first()
 
-    val objects: EntityQueryBase<ID, E, M> = this.buildEntityQuery()
+    val objects: EntityQuery<ID, E, M> = this.buildEntityQuery()
 
     var relatedColumnId: Column<Any>? = null
 
@@ -122,3 +123,5 @@ abstract class EntityManager<ID : Comparable<ID>, E : Entity<ID>, M : EntityMana
     }
 
 }
+
+infix fun <ID: Comparable<ID>, E: Entity<ID>> EntityManager<ID, E, *>.eq(application: E) = this.id eq application.id

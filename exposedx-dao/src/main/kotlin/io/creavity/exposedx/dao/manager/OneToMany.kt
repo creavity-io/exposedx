@@ -33,10 +33,10 @@ class OneToManyRelation<ID: Comparable<ID>, E: Entity<ID>, M: EntityManager<ID, 
 }
 
 fun <ID: Comparable<ID>, E: Entity<ID>, M: EntityManager<ID, E, M>,
-        ID2: Comparable<ID2>, E2: Entity<ID2>, M2: EntityManager<ID2, E2, M2>> oneToManyRef(joinableTable: M, refTable: M2): OneToManyRelationRef<ID2, E2, M2> {
+        ID2: Comparable<ID2>, E2: Entity<ID2>, M2: EntityManager<ID2, E2, M2>> oneToMany(joinableTable: M, refTable: M2): OneToManyRelationRef<ID2, E2, M2> {
     return OneToManyRelationRef(refTable, joinableTable.relatedColumnId!!)
 }
 
-fun <ID: Comparable<ID>, E: Entity<ID>, M: EntityManager<ID, E, M>> M.oneToMany(): OneToManyRelation<ID, E, M> {
+fun <ID: Comparable<ID>, E: Entity<ID>, M: EntityManager<ID, E, M>> M.asList(): OneToManyRelation<ID, E, M> {
     return OneToManyRelation(relatedColumnId!! as Column<EntityID<ID>>)
 }

@@ -55,8 +55,8 @@ class Region: IntEntity() {
 The one to many relations, are reverse relations of ManyToOne or Foreing keys, then it can be added from other module with extension getters. 
 
 ```kotlin
-val CountryTable.regions by oneToManyRef(Region.country, Region)
-val Country.regions by Country.regions.oneToMany()
+val CountryTable.regions by oneToMany(Region.country, Region)
+val Country.regions by Country.regions.asList()
 ```
 
 This will createt a queryset that we can iterate for example:
