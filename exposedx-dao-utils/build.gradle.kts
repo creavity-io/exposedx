@@ -13,8 +13,8 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.exposed", "exposed-core", "0.23.2")
-    implementation("org.jetbrains.exposed", "exposed-jdbc", "0.23.2")
+    implementation("org.jetbrains.exposed", "exposed-core", "0.23.1")
+    implementation("org.jetbrains.exposed", "exposed-jdbc", "0.23.1")
     implementation("com.h2database", "h2", "1.4.200")
 
     implementation(project(":exposedx-dao"))
