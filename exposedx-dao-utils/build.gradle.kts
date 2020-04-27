@@ -4,6 +4,7 @@ import org.jetbrains.exposed.gradle.setupDialectTest
 import tanvd.kosogor.proxy.publishJar
 
 plugins {
+    id("maven-publish")
     kotlin("jvm") apply true
 }
 
@@ -13,8 +14,16 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.exposed", "exposed-core", "0.23.1")
-    implementation("org.jetbrains.exposed", "exposed-jdbc", "0.23.1")
+    implementation("org.jetbrains.exposed", "exposed-core") {
+        version {
+            branch = "master"
+        }
+    }
+    implementation("org.jetbrains.exposed", "exposed-jdbc") {
+        version {
+            branch = "master"
+        }
+    }
     implementation("com.h2database", "h2", "1.4.200")
 
     implementation(project(":exposedx-dao"))
@@ -44,13 +53,13 @@ tasks.withType(Test::class.java) {
     }
 }
 
-
+/*
 publishJar {
     publication {
         artifactId = "exposedx-dao-utils"
         version = project.version
     }
-
+    /*
     bintray {
         username = project.properties["bintrayUser"]?.toString() ?: System.getenv("BINTRAY_USER")
         secretKey = project.properties["bintrayApiKey"]?.toString() ?: System.getenv("BINTRAY_API_KEY")
@@ -61,6 +70,24 @@ publishJar {
             vcsUrl = "https://github.com/JetBrains/Exposed.git"
             userOrg = "kotlin"
             license = "Apache-2.0"
+        }
+    }
+     */
+}
+ */
+
+val sourcesJar by tasks.creating(Jar::class) {
+    classifier = "sources"
+    from(sourceSets.main.get().allSource)
+}
+
+publishing {
+    publications {
+        register<MavenPublication>("gpr") {
+            artifactId = "exposedx-dao-utils"
+            version = project.version.toString()
+            from(components["java"])
+            artifact(sourcesJar)
         }
     }
 }

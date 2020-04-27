@@ -1,6 +1,5 @@
 package io.creavity.exposedx.dao
 
-import com.sun.org.apache.xpath.internal.operations.Bool
 import io.mockk.clearMocks
 import io.mockk.spyk
 import io.mockk.verify

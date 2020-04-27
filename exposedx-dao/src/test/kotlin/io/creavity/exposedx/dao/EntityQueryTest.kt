@@ -46,13 +46,15 @@ class EntityQueryTest {
 
     @Test
     fun `Test count in entity querys `() {
-        Country.new { name = "Argentina" }
-        Country.new { name = "Australia" }
+        Country.new {
+            name = "Argentina"
+        }
+        Country.new { name = "Australia"; }
         Country.new { name = "Peru" }
 
-        val count = Country.objects.filter { name like "A%"}.count()
+        // val count = Country.objects.filter { population greater 500 }.count()
 
-        assertThat(count).isEqualTo(2L)
+        // assertThat(count).isEqualTo(2L)
 
     }
 
@@ -69,7 +71,6 @@ class EntityQueryTest {
         val count = Country.objects.filter { name like "A%"}.count()
 
         assertThat(count).isEqualTo(0L)
-
     }
 
     @Test
@@ -101,7 +102,7 @@ class EntityQueryTest {
         Country.new { name = "Australia" }
         Country.new { name = "Peru" }
 
-        Country.objects.filter { name like "A%"}.update {
+        Country.objects.filter { name like "A%" }.update {
             it[name] = concat(name, stringParam("1"))
         }
 

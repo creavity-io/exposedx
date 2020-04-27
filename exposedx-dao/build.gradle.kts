@@ -4,6 +4,7 @@ import org.jetbrains.exposed.gradle.setupDialectTest
 import tanvd.kosogor.proxy.publishJar
 
 plugins {
+    id("maven-publish")
     kotlin("jvm") apply true
 }
 
@@ -13,8 +14,16 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.exposed", "exposed-core", "0.23.1")
-    implementation("org.jetbrains.exposed", "exposed-jdbc", "0.23.1")
+    implementation("org.jetbrains.exposed", "exposed-core") {
+        version {
+            branch = "master"
+        }
+    }
+    implementation("org.jetbrains.exposed", "exposed-jdbc") {
+        version {
+            branch = "master"
+        }
+    }
     implementation("com.h2database", "h2", "1.4.200")
     implementation("io.github.microutils:kotlin-logging:1.7.8")
     implementation("ch.qos.logback:logback-classic:1.2.3")
@@ -38,12 +47,13 @@ tasks.withType(Test::class.java) {
     }
 }
 
-
+/*
 publishJar {
     publication {
         artifactId = "exposedx-dao"
         version = project.version
     }
+    /*
 
     bintray {
         username = project.properties["bintrayUser"]?.toString() ?: System.getenv("BINTRAY_USER")
@@ -51,11 +61,37 @@ publishJar {
         repository = "exposed"
         info {
             publish = false
-            githubRepo = "https://github.com/JetBrains/Exposed.git"
-            vcsUrl = "https://github.com/JetBrains/Exposed.git"
+            githubRepo = "https://github.com/creavity-io/exposedx"
+            vcsUrl = "https://github.com/creavity-io/exposedx.git"
             userOrg = "kotlin"
             license = "Apache-2.0"
         }
     }
+     */
+    /*repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/creavity-io/exposedx")
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") as String? ?: System.getenv("TOKEN")
+            }
+        }
+    }*/
+}
+ */
+val sourcesJar by tasks.creating(Jar::class) {
+    classifier = "sources"
+    from(sourceSets.main.get().allSource)
 }
 
+publishing {
+    publications {
+        register<MavenPublication>("gpr") {
+            artifactId = "exposedx-dao"
+            version = project.version.toString()
+            from(components["java"])
+            artifact(sourcesJar)
+        }
+    }
+}
