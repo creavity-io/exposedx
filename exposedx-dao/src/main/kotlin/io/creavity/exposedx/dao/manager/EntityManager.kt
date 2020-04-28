@@ -57,7 +57,7 @@ abstract class EntityManager<ID : Comparable<ID>, E : Entity<ID>, M : EntityMana
 
     private val ctor = klass.constructors.first()
 
-    internal val objects: EntityQuery<ID, E, M> = this.buildEntityQuery()
+    val objects: EntityQuery<ID, E, M> = this.buildEntityQuery()
 
     internal var relatedColumnId: Column<Any>? = null
 

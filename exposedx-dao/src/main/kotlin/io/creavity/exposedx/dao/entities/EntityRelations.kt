@@ -89,9 +89,8 @@ fun <ID: Comparable<ID>, E: Entity<ID>, RelatedTable: EntityManager<ID, E, Relat
     return ManyToOptionalRelationRef(this, name, foreign, onDelete, onUpdate, fkName)
 }
 
-
 @Suppress("UNCHECKED_CAST")
-fun <ID: Comparable<ID>, E: Entity<ID>, RelatedTable: EntityManager<ID, E, RelatedTable>> RelatedTable.selfRelation(
+fun <ID: Comparable<ID>, E: Entity<ID>, RelatedTable: EntityManager<ID, E, RelatedTable>> RelatedTable.manyToOptional(
         name: String,
         onDelete: ReferenceOption? = null,
         onUpdate: ReferenceOption? = null,
@@ -99,6 +98,7 @@ fun <ID: Comparable<ID>, E: Entity<ID>, RelatedTable: EntityManager<ID, E, Relat
 ): ManyToOptionalRelationRef<ID, E, RelatedTable> {
     return ManyToOptionalRelationRef(this, name, this, onDelete, onUpdate, fkName)
 }
+
 
 class NullableRelation<ID: Comparable<ID>, E: Entity<ID>, M: EntityManager<ID, E, M>>(val manager: EntityManager<ID, E, M>)
 

@@ -1,11 +1,8 @@
 package io.creavity.exposedx.dao
 
+import io.creavity.exposedx.dao.entities.*
 import io.creavity.exposedx.dao.entities.generics.IntEntity
 import io.creavity.exposedx.dao.entities.generics.IntEntityManager
-import io.creavity.exposedx.dao.entities.getValue
-import io.creavity.exposedx.dao.entities.manyToOptional
-import io.creavity.exposedx.dao.entities.nullable
-import io.creavity.exposedx.dao.entities.selfRelation
 import io.creavity.exposedx.dao.manager.new
 import io.mockk.clearMocks
 import io.mockk.spyk
@@ -25,7 +22,7 @@ class EntityCircularTest {
 
     open class UserTable: IntEntityManager<User, UserTable>() {
         val name by varchar("name", 255)
-        val parent by selfRelation("parent")
+        val parent by manyToOptional("parent")
     }
 
     class User: IntEntity() {
