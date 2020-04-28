@@ -6,7 +6,6 @@ import org.jetbrains.exposed.dao.id.IdTable
 import io.creavity.exposedx.dao.exceptions.EntityNotFoundException
 import io.creavity.exposedx.dao.queryset.EntityQuery
 import io.creavity.exposedx.dao.queryset.EntityQueryBase
-import io.creavity.exposedx.dao.queryset.joinWithParent
 import io.creavity.exposedx.dao.queryset.localTransaction
 import io.creavity.exposedx.dao.signals.EntityChangeType
 import io.creavity.exposedx.dao.signals.registerChange
@@ -36,11 +35,11 @@ fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.new(init: E.()
 fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.reload(entity: E, flush: Boolean = false): E = entity.also {
     localTransaction {
         if (flush) {
-            cache.flush()
+            _cache.flush()
         }
         entity.reset()
         entity.readValues = findResultRowById(entity.id) ?: throw EntityNotFoundException(entity.id, this@reload)
-        cache[this@reload].store(entity)
+        _cache[this@reload].store(entity)
     }
 }
 
@@ -52,48 +51,38 @@ typealias JoinFunction= (ColumnSet.() -> ColumnSet)
 
 @Suppress("UNCHECKED_CAST")
 abstract class EntityManager<ID : Comparable<ID>, E : Entity<ID>, M : EntityManager<ID, E, M>>(name: String = "") : IdTable<ID>(), ISqlExpressionBuilder, CopiableObject<M> {
-    val originalId: Column<EntityID<ID>> get() = this.id.referee() ?: this.id
+    internal val originalId: Column<EntityID<ID>> get() = this.id.referee() ?: this.id
 
     private val klass = this.javaClass.enclosingClass
 
     private val ctor = klass.constructors.first()
 
-    val objects: EntityQuery<ID, E, M> = this.buildEntityQuery()
+    internal val objects: EntityQuery<ID, E, M> = this.buildEntityQuery()
 
-    var relatedColumnId: Column<Any>? = null
+    internal var relatedColumnId: Column<Any>? = null
 
-    var relatedJoin: MutableMap<Table, JoinFunction> = mutableMapOf() // se utiliza para hacer los joins
+    internal var relatedJoin: MutableMap<Table, JoinFunction> = mutableMapOf() // se utiliza para hacer los joins
 
-    val aliasRelated by lazy {
+    internal val aliasRelated by lazy {
         // tener en cuenta que si se llama al alias related antes de setear el related column id, este se quedara como null
         relatedColumnId?.let {
             Alias(this, "${it.name}_${this.tableName}")
         }
     }
 
-    var parent: EntityManager<*, *, *>? = null
+    internal var _parent: EntityManager<*, *, *>? = null
 
     override var tableName = name.ifBlank { klass.simpleName!! }
 
-    internal open val cache get() = TransactionManager.current().transactionCache
+    internal open val _cache get() = TransactionManager.current().transactionCache
 
     open fun createInstance() = ctor.newInstance() as E
 
     open val defaultQuery get() = this.selectAll()
 
-    fun relatedJoinQuery(query: Query): Query? {
-        val queryResult = query.copy()
-        return aliasRelated?.let { thisAlias ->
-            val parent = relatedColumnId!!.table as EntityManager<*,*, *>
-            val parentId = parent.aliasRelated?.let { it[relatedColumnId!!] } ?: relatedColumnId!!
-            thisAlias.innerJoin(parent.relatedJoinQuery(queryResult)?.set?.source ?: parent, { thisAlias[relatedColumnId!!.referee!!] }, { parentId }).selectAll()
-        }
-    }
-
-
-    fun asRelatedTable(column: Column<Any>, parent: EntityManager<*,*,*> = column.table as EntityManager<*,*,*>) {
+    internal fun asRelatedTable(column: Column<Any>, parent: EntityManager<*,*,*> = column.table as EntityManager<*,*,*>) {
         this.relatedColumnId = column
-        this.parent = parent
+        this._parent = parent
     }
 
     open fun findResultRowById(id: EntityID<ID>): ResultRow? = localTransaction {
@@ -104,18 +93,18 @@ abstract class EntityManager<ID : Comparable<ID>, E : Entity<ID>, M : EntityMana
 
     open fun save(prototype: E): E = prototype.also {
         localTransaction {
-            cache.scheduleSave(this@EntityManager, prototype)
+            _cache.scheduleSave(this@EntityManager, prototype)
         }
     }
 
     open fun delete(id: EntityID<ID>) = localTransaction {
         objects.filter { this@EntityManager.id eq id }.delete()
-        cache[this@EntityManager].remove(id)
+        _cache[this@EntityManager].remove(id)
         TransactionManager.current().registerChange(this@EntityManager, id, EntityChangeType.Removed)
     }
 
 
-    fun buildEntityQuery(initQuery: Query? = null): EntityQueryBase<ID, E, M> = EntityQueryBase(this as M, initQuery ?: defaultQuery)
+    private fun buildEntityQuery(initQuery: Query? = null): EntityQueryBase<ID, E, M> = EntityQueryBase(this as M, initQuery ?: defaultQuery)
 
     override fun copy(): M = this.javaClass.constructors.first().let {
         it.isAccessible = true

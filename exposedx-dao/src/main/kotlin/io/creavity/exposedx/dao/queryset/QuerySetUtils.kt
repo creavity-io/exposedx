@@ -5,8 +5,8 @@ import org.jetbrains.exposed.sql.*
 
 
 fun EntityManager<*, *, *>.addRelatedJoin(table: Table, newJoin: (ColumnSet.() -> ColumnSet)) {
-    if(parent != null) {
-        parent!!.addRelatedJoin(table, newJoin)
+    if(_parent != null) {
+        _parent!!.addRelatedJoin(table, newJoin)
     } else {
         this.relatedJoin[table] = newJoin
     }
@@ -26,7 +26,7 @@ fun joinWith(leftTable: Table, rightTable: Table, column: Column<*>): (ColumnSet
         rightOn = if(rightTable is Alias<*>) rightTable[column] else column
     }
     return {
-        innerJoin(rightTable, { leftOn }, { rightOn })
+        leftJoin(rightTable, { leftOn }, { rightOn })
     }
 }
 
@@ -34,7 +34,7 @@ fun joinWith(leftTable: Table, rightTable: Table, column: Column<*>): (ColumnSet
 
 
 fun EntityManager<*, *, *>.joinWithParent() {
-    parent?.let { leftTable ->
+    _parent?.let { leftTable ->
         leftTable.joinWithParent() // join parent with his parent
         val parentAlias = leftTable.aliasRelated
 

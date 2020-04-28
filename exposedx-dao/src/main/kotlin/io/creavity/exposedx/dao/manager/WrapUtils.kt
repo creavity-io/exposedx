@@ -60,19 +60,19 @@ fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrapRow(row: R
 @Suppress("UNCHECKED_CAST")
 internal fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrap(row: ResultRow, isForUpdate: Boolean = false): E {
     val entityId = row[this.originalId]
-    val found = cache[this].find(entityId)?.apply { readValues = row }
+    val found = _cache[this].find(entityId)?.apply { readValues = row }
     if (found != null) return found as E
 
     return createInstance().also {
-        it.init(cache[this].transaction.db, entityId, row, isForUpdate)
-        cache[this].store(it)
+        it.init(_cache[this].transaction.db, entityId, row, isForUpdate)
+        _cache[this].store(it)
     }
 }
 
 @Suppress("UNCHECKED_CAST")
 internal fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.lazyWrap(id: EntityID<ID>, db: Database): E {
     if(transactionExist) {
-        val found = cache[this].find(id)
+        val found = _cache[this].find(id)
         if (found != null) return found as E
     }
 
@@ -80,6 +80,6 @@ internal fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.lazyW
         it.init(db, id) {
             this@lazyWrap.findResultRowById(id) ?: throw EntityNotFoundException(id, this@lazyWrap)
         }
-        if(transactionExist) cache[this].store(it)
+        if(transactionExist) _cache[this].store(it)
     }
 }

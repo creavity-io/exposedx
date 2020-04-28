@@ -22,7 +22,7 @@ class Country: IntEntity() {
 
 abstract class RegionTable: IntEntityManager<Region, RegionTable>() {
     val name by varchar("name", 255)
-    val country by manyToOne("country", Country)
+    val country by manyToOne("country_id", Country)
 }
 
 class Region: IntEntity() {

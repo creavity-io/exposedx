@@ -99,13 +99,12 @@ class EntityManyToOneTest {
         transaction {
             School.objects.filter { region.country.name eq "Peru" }.all()
             val sql = "SELECT SCHOOL.ID, SCHOOL.\"NAME\", SCHOOL.REGION_ID, SCHOOL.SECONDARY_REGION_ID" +
-                    " FROM SCHOOL INNER JOIN REGION region_id_Region" +
+                    " FROM SCHOOL LEFT JOIN REGION region_id_Region" +
                     " ON SCHOOL.REGION_ID = region_id_Region.ID" +
-                    " INNER JOIN COUNTRY country_Country" +
-                    " ON region_id_Region.COUNTRY = country_Country.ID" +
-                    " WHERE country_Country.\"NAME\" = ?"
-            verify(exactly = 1) { this@EntityManyToOneTest.connection.prepareStatement(sql, any<Int>()) }
-
+                    " LEFT JOIN COUNTRY country_id_Country" +
+                    " ON region_id_Region.COUNTRY_ID = country_id_Country.ID" +
+                    " WHERE country_id_Country.\"NAME\" = ?"
+           verify(exactly = 1) { this@EntityManyToOneTest.connection.prepareStatement(sql, any<Int>()) }
         }
     }
 

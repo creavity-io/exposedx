@@ -79,7 +79,7 @@ class EntityQueryTest {
         Country.new { name = "Chile" }
         Country.new { name = "Brazil" }
 
-        val results = Country.objects.filter { name eq "Peru"}
+        val results = Country.objects.filter { name eq "Peru" }
         assertThat(results.count()).isEqualTo(1L)
         assertThat(results.first().name).isEqualTo("Peru")
     }

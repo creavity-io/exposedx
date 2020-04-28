@@ -33,15 +33,15 @@ abstract class Entity<ID : Comparable<ID>> : EntityDelegator<ID>, MutableResultR
      *
      * This will remove the entity from the database as well as the cache.
      */
-    open fun delete() {
+    fun delete() {
         table.delete(this.id)
     }
 
-    open fun save(): Entity<ID> {
+    fun save(): Entity<ID> {
         return this.table.save(this)
     }
 
-    open fun reload() {
+    fun reload() {
         this.table.reload(this, true)
     }
 

@@ -54,6 +54,7 @@ interface EntityQuery<ID : Comparable<ID>, E : Entity<ID>, T : EntityManager<ID,
     fun forUpdate(updateFn: (E) -> Unit)
     fun selectRelated(vararg tables: EntityManager<*, *, *>): EntityQuery<ID, E, T>
     fun prefetchRelated(vararg tables: EntityManager<*, *, *>): EntityQuery<ID, E, T>
+    fun distinct(): EntityQuery<ID, E, T>
 }
 
 // puede cambiairse a inline class
@@ -128,22 +129,29 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
         return relatedcolumnsToFetch
     }
 
+    private fun getParentTables(child: EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>): List<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>{
+        var table = child
+        val tables = mutableListOf<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>()
+        while (table.relatedColumnId != null) {
+            tables.add(table)
+            table = table.relatedColumnId!!.table as EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>
+        }
+        return tables
+    }
 
     private fun joinWithSelectRelated() {
         selectRelatedTables.forEach {
-            // todo: refactor, move this to other place.
-            var table = it
-
-            while (table.relatedColumnId != null) {
+            val tables = getParentTables(it)
+            tables.reversed().forEach { table ->
                 val leftTable: Table = (table.relatedColumnId?.table as EntityManager<*, *, *>?)?.aliasRelated
                         ?: this.entityManager
                 val newJoin = joinWith(leftTable, table.aliasRelated!!, table.relatedColumnId!!)
                 rawQuery.adjustColumnSet { newJoin() }
                 rawQuery.adjustSlice { this.slice(table.aliasRelated!!.columns + rawQuery.set.fields) }
-                table = table.relatedColumnId!!.table as EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>
             }
         }
     }
+
 
     private fun fetchElements(): Iterator<E> = localTransaction {
         joinWithSelectRelated()
@@ -254,6 +262,9 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
                 it.prefetchRelatedTables.addAll(this.prefetchRelatedTables)
             }
 
+    override fun distinct(): EntityQuery<ID, E, T> = entityQuery.apply {
+        rawQuery.withDistinct(true)
+    }
 
     private val selfConstructor by lazy {
         try {

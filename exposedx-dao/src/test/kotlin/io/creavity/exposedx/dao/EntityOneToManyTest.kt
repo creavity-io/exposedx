@@ -117,4 +117,25 @@ class EntityOneToManyTest {
             assertThat(result.id).isEqualTo(peru.id)
         }
     }
+
+    @Test
+    fun `Test inverse relation in nullable relations`() {
+        Country.new { name = "Argentina" }
+        Country.new { name = "Australia" }
+        val peru = Country.new { name = "Peru" }
+        val lima = Region.new { name = "Lima"; country = peru }
+        val trujillo = Region.new { name = "Trujillo"; country = peru }
+
+        School.new { name = "School 1"; region = lima }
+        School.new { name = "School 2"; region = lima; secondaryRegion = null }
+        School.new { name = "School 3"; region = lima; secondaryRegion = trujillo }
+
+        transaction {
+            val result = Country.objects.filter {
+                regions.schoolsSecondary.name eq "School 3"
+            }.distinct().count()
+            assertThat(result).isEqualTo(1)
+        }
+    }
+
 }
