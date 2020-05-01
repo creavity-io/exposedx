@@ -111,6 +111,12 @@ abstract class EntityManager<ID : Comparable<ID>, E : Entity<ID>, M : EntityMana
         it.newInstance(null) as M
     }
 
+    infix fun eq(application: E) = this.id eq application.id
+    fun isNull() = this.id.isNull()
+    fun isNotNull() = this.id.isNotNull()
+    infix fun inList(list: List<E>) = this.id.inList(list.map { it.id })
+
+    infix fun  Expression<String?>.contains(obj: String) = this.upperCase() like obj.toUpperCase()
+
 }
 
-infix fun <ID: Comparable<ID>, E: Entity<ID>> EntityManager<ID, E, *>.eq(application: E) = this.id eq application.id

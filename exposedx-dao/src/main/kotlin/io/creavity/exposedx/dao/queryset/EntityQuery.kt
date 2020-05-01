@@ -284,6 +284,7 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
      * users.filter { name like "B%" } // al modificar la misma query devolverían name = "A" and name = "B"
      */
     private val entityQuery: EntityQueryBase<ID, E, T> get() = copy()
+
 }
 
 

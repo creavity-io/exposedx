@@ -21,12 +21,12 @@ operator fun <T: Column<*>> T.getValue(rightTable: EntityManager<*, *, *>, prope
 }
 
 
-class ManyToOneRelationRef<ID : Comparable<ID>, E : Entity<ID>, M : EntityManager<ID, E, M>>(val from: EntityManager<*,*,*>,
-                                                                                                  val name: String,
-                                                                                                  val foreign: M,
-                                                                                                  val onDelete: ReferenceOption? = null,
-                                                                                                  val onUpdate: ReferenceOption? = null,
-                                                                                                  val fkName: String? = null) {
+class ManyToOneRelationRef<ID : Comparable<ID>, E : Entity<ID>, M : EntityManager<ID, E, M>>(from: EntityManager<*,*,*>,
+                                                                                             name: String,
+                                                                                             val foreign: M,
+                                                                                             onDelete: ReferenceOption? = null,
+                                                                                             onUpdate: ReferenceOption? = null,
+                                                                                             fkName: String? = null) {
     val column: Column<Any> = from.reference(name, foreign, onDelete, onUpdate, fkName) as Column<Any>
 
 
@@ -42,12 +42,12 @@ class ManyToOneRelationRef<ID : Comparable<ID>, E : Entity<ID>, M : EntityManage
     }
 }
 
-class ManyToOptionalRelationRef<ID : Comparable<ID>, E : Entity<ID>, M : EntityManager<ID, E, M>>(val from: EntityManager<*,*,*>,
-                                                                                             val name: String,
-                                                                                             val foreign: M,
-                                                                                             val onDelete: ReferenceOption? = null,
-                                                                                             val onUpdate: ReferenceOption? = null,
-                                                                                             val fkName: String? = null) {
+class ManyToOptionalRelationRef<ID : Comparable<ID>, E : Entity<ID>, M : EntityManager<ID, E, M>>(from: EntityManager<*,*,*>,
+                                                                                                  name: String,
+                                                                                                  val foreign: M,
+                                                                                                  onDelete: ReferenceOption? = null,
+                                                                                                  onUpdate: ReferenceOption? = null,
+                                                                                                  fkName: String? = null) {
 
     val column: Column<Any> = from.optReference(name, foreign, onDelete, onUpdate, fkName) as Column<Any>
 
