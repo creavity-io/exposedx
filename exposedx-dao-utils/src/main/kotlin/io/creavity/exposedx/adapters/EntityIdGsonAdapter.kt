@@ -8,6 +8,6 @@ import java.lang.reflect.Type
 
 class EntityIdGsonAdapter: JsonSerializer<EntityID<*>> {
     override fun serialize(src: EntityID<*>, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
-        return context.serialize(src._value)
+        return context.serialize(kotlin.runCatching { src.value }.getOrNull())
     }
 }

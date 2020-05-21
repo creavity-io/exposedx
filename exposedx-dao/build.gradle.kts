@@ -8,22 +8,9 @@ plugins {
     kotlin("jvm") apply true
 }
 
-repositories {
-    jcenter()
-    mavenCentral()
-}
-
 dependencies {
-    implementation("org.jetbrains.exposed", "exposed-core") {
-        version {
-            branch = "master"
-        }
-    }
-    implementation("org.jetbrains.exposed", "exposed-jdbc") {
-        version {
-            branch = "master"
-        }
-    }
+    implementation("org.jetbrains.exposed:exposed-core:0.24.1")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.24.1")
     implementation("com.h2database", "h2", "1.4.200")
     implementation("io.github.microutils:kotlin-logging:1.7.8")
     implementation("ch.qos.logback:logback-classic:1.2.3")

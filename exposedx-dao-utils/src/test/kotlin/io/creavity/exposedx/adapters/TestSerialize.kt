@@ -8,6 +8,7 @@ import io.creavity.exposedx.dao.manager.new
 import io.creavity.exposedx.dao.queryset.first
 import io.mockk.clearMocks
 import io.mockk.spyk
+
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Database
@@ -74,6 +75,22 @@ class TestSerialize {
         assertThat(gson.toJson(t)).isEqualTo("""{"country":{"name":"Peru"},"name":"La Libertad"}""")
     }
 
+    @Test
+    fun `Test Many to Optional to JSON`() {
+        val peru = Country()
+        peru.name = "Peru"
+
+        val t = Region()
+        t.name = "La Libertad"
+        t.country = peru
+
+        val school = School()
+        school.region = t
+        school.name = "San Juan"
+
+        assertThat(gson.toJson(school)).isEqualTo("""{"name":"San Juan","region":{"country":{"name":"Peru"},"name":"La Libertad"}}""")
+    }
+
 
 
     @Test
@@ -82,7 +99,17 @@ class TestSerialize {
 
         val obj = gson.fromJson(json, Region::class.java)
         assertThat(obj.name).isEqualTo("La Libertad")
+        assertThat(obj.country.name).isEqualTo("Peru")
         assertThat(gson.toJson(obj)).isEqualTo(json)
+    }
+
+    @Test
+    fun `Test deserialize with optional objects`() {
+        val json = """{"name":"San Juan","region": {"country":{"name":"Peru"},"name":"La Libertad"}, "secondaryRegion": null}"""
+
+        val obj = gson.fromJson(json, School::class.java)
+        assertThat(obj.region.name).isEqualTo("La Libertad")
+        assertThat(obj.secondaryRegion).isEqualTo(null)
     }
 
 }

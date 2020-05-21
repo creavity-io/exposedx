@@ -12,6 +12,7 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
+        maven("https://dl.bintray.com/kotlin/exposed")
     }
 
     publishing {
