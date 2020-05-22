@@ -21,8 +21,8 @@ subprojects {
                 name = "GitHubPackages"
                 url = uri("https://maven.pkg.github.com/creavity-io/exposedx")
                 credentials {
-                    username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
-                    password = project.findProperty("gpr.key") as String? ?: System.getenv("TOKEN")
+                    username = project.findProperty("GPR_USER") as String? ?: System.getenv("USERNAME")
+                    password = project.findProperty("GPR_KEY") as String? ?: System.getenv("TOKEN")
                 }
             }
         }
