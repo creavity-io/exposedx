@@ -36,8 +36,8 @@ internal class TransactionTableCache<ID : Comparable<ID>, T: IdTable<ID>>(val ta
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun scheduleSave(row: MutableResultRow<ID>) {
-        row.markForSave(transaction.db)
+    fun scheduleSave(row: MutableResultRow<ID>, columns: Array<out Column<*>>) {
+        row.markForSave(transaction.db, columns)
         when (row.flushAction) {
             FlushAction.UPDATE -> store(row) // if detached, add to store
             FlushAction.INSERT -> inserts.add(row)
@@ -166,7 +166,7 @@ internal class TransactionCache(private val transaction: Transaction) {
          */
     }
 
-    fun <ID: Comparable<ID>> scheduleSave(table: IdTable<ID>, row: MutableResultRow<ID>) = this[table].scheduleSave(row)
+    fun <ID: Comparable<ID>> scheduleSave(table: IdTable<ID>, row: MutableResultRow<ID>, columns: Array<out Column<*>>) = this[table].scheduleSave(row, columns)
 
     fun clear() = tableCaches.clear()
 

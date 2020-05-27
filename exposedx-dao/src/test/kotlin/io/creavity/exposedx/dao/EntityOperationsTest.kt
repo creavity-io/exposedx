@@ -7,6 +7,7 @@ import io.creavity.exposedx.dao.manager.new
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.*
+import java.lang.Exception
 import java.sql.Connection
 import java.sql.DriverManager
 
@@ -83,6 +84,21 @@ class EntityOperationsTest {
     }
 
     @Test
+    fun `Throw not null exception inmediatly when save object`() {
+        transaction {
+            var exception: Throwable? = null
+            try {
+                val c = Country()
+                c.save()
+            } catch (ex: IllegalArgumentException) {
+                   exception = ex
+            }
+            assertThat(exception).isNotNull().withFailMessage("Should raise not null exception")
+            assertThat(exception!!.localizedMessage).contains("Country.name")
+        }
+    }
+
+    @Test
     fun `Batch insert in one transaction`() {
         transaction {
             val entity1 = Country.new { name = "Peru" }
@@ -128,6 +144,54 @@ class EntityOperationsTest {
     }
 
     @Test
+    fun `Update only some columns`() {
+        val peru = Country.new { name = "Peru" }
+
+        Region.new { name = "Lima"; country=peru; isActive=false}
+        Region.new { name = "Arequipa"; country=peru; isActive=false }
+        Region.new { name = "Trujillo"; country=peru; isActive=false }
+
+        transaction {
+            val entity3 = Region.objects.get(3)!!
+            entity3.name = "Chiclayo"
+            entity3.isActive = true
+            entity3.save(Region.isActive)
+            assertThat(entity3.name).isEqualTo("Chiclayo").withFailMessage("Name should not change after save")
+        }
+
+
+
+        transaction {
+            val count = Region.select { (Region.id eq 3) and (Region.isActive eq true)}.count()
+            assertThat(count).isEqualTo(1)
+
+            val count2 = Region.select { Region.name eq "Chiclayo"}.count()
+            assertThat(count2).isEqualTo(0)
+        }
+    }
+
+    @Test
+    fun `Update without search`() {
+        val peru = Country.new { name = "Peru" }
+        val lima = Region.new { name="Lima"; country=peru; isActive = true}
+
+        transaction {
+            val region = Region()
+            region.id._value = peru.id._value
+            region.name = "Trujillo"
+            region.save()
+        }
+
+        transaction {
+            val region = Region.objects.get(1)!!
+            assertThat(region.name).isEqualTo("Trujillo")
+            assertThat(region.country.name).isEqualTo("Peru")
+            assertThat(region.isActive).isEqualTo(true)
+        }
+    }
+
+
+    @Test
     fun `Delete entity`() {
         val entity1 = Country.new { name = "Peru" }
         Country.new { name = "Chile" }
@@ -148,20 +212,60 @@ class EntityOperationsTest {
         assertThat(entity1.name).isEqualTo("Peru")
     }
 
+
+
     @Test
-    fun `Reset object`() {
+    fun `Reload without reset from object without db`() {
+        val peru = Country.new { name = "Peru" }
+        Region.new { country=peru; isActive = true; name = "Lima" }
+
+        val region = Region()
+        region.id._value = 1
+        region.isActive = false
+        region.reload()
+        assertThat(region.name).isEqualTo("Lima")
+        assertThat(region.isActive).isEqualTo(false)
+    }
+
+    @Test
+    fun `Reload without reset`() {
+        val peru = Country.new { name = "Peru" }
+        val region = Region.new { country=peru; isActive = true; name = "Lima" }
+
+        region.isActive = false
+        region.reload()
+        assertThat(region.name).isEqualTo("Lima")
+        assertThat(region.isActive).isEqualTo(false)
+    }
+
+    @Test
+    fun `Reload without reset in transaction`() {
+        transaction {
+            val peru = Country.new { name = "Peru" }
+            val region = Region.new { country=peru; isActive = true; name = "Lima" }
+            region.isActive = false
+            region.reload()
+            region.isActive
+
+            assertThat(region.name).isEqualTo("Lima")
+            assertThat(region.isActive).isEqualTo(false)
+        }
+    }
+
+    @Test
+    fun `Reload with reset`() {
         val entity1 = Country.new { name = "Peru" }
         entity1.name = "Ecuador"
-        entity1.reload()
+        entity1.reload(true)
         assertThat(entity1.name).isEqualTo("Peru")
     }
 
     @Test
-    fun `Reset with transaction`()  {
+    fun `Reload with reset in transaction`()  {
         transaction {
             val entity1 = Country.new { name = "Peru" }
             entity1.name = "Ecuador"
-            entity1.reload()
+            entity1.reload(true)
             assertThat(entity1.name).isEqualTo("Peru")
         }
     }

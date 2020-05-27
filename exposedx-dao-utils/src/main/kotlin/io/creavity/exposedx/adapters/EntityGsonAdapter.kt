@@ -29,10 +29,13 @@ class EntityGsonAdapter: JsonDeserializer<Entity<*>>, JsonSerializer<Entity<*>> 
     override fun serialize(src: Entity<*>, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
         val klass = (typeOfSrc as Class<*>).kotlin
         val jsonObject = JsonObject();
-
-        val fields = klass.memberProperties.filter { !arrayOf( "updateOnFlush", "table", "flushAction", "db", "isLoaded", "readValues", "updateOnFlush", "idClass").contains(it.name) }
+        if(!src.isLoaded()) {
+            jsonObject.add("id", context.serialize(src.id._value))
+            return jsonObject
+        }
+        val fields = klass.memberProperties.filter { !arrayOf("isLazy", "updateOnFlush", "table", "flushAction", "db", "readValues", "updateOnFlush", "idClass", "_readValues").contains(it.name) }
         fields.forEach {
-            jsonObject.add(it.name, context.serialize(it.getter.call(src)))
+            jsonObject.add(it.name, context.serialize(kotlin.runCatching { it.getter.call(src) }.getOrNull()))
         }
 
         return jsonObject

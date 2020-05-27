@@ -103,7 +103,7 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
         }.toTypedArray())
     }
 
-    override fun orderBy(@Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE") vararg columns: Pair<Expression<*>, SortOrder>) = entityQuery.apply { rawQuery.orderBy(*columns) }
+    override fun orderBy(@Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE") vararg columns: Pair<Expression<*>, SortOrder>): EntityQuery<ID, E, T> = entityQuery.apply { rawQuery.orderBy(*columns) }
 
     private var elements: List<E>? = null
 

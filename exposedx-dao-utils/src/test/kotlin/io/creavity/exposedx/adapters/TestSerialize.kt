@@ -104,6 +104,22 @@ class TestSerialize {
     }
 
     @Test
+    fun `Test serialize nested incomplete objects`() {
+        val json = "{\"country\":{\"id\":1},\"name\":\"La Libertad\",\"id\":1}"
+
+        val peru = Country()
+        peru.id._value = 1
+
+        val t = Region()
+        t.id._value = 1
+        t.name = "La Libertad"
+        t.country = peru
+
+        val obj = gson.toJson(t, Region::class.java)
+        assertThat(obj).isEqualTo(json)
+    }
+
+    @Test
     fun `Test deserialize with optional objects`() {
         val json = """{"name":"San Juan","region": {"country":{"name":"Peru"},"name":"La Libertad"}, "secondaryRegion": null}"""
 
@@ -112,6 +128,15 @@ class TestSerialize {
         assertThat(obj.secondaryRegion).isEqualTo(null)
     }
 
+    @Test
+    fun `Test serialize no set values as null`() {
+        val peru = Country()
+        peru.name = "Peru"
+
+        val region = Region()
+        region.country = peru
+        assertThat(gson.toJson(region)).isEqualTo("{\"country\":{\"name\":\"Peru\"}}")
+    }
 }
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -155,6 +180,22 @@ class IntegrationTestSerialize {
         region.save()
 
         assertThat(gson.toJson(region)).isEqualTo("{\"country\":{\"name\":\"Peru\",\"id\":1},\"name\":\"La Libertad\",\"id\":1}")
+    }
+
+
+    @Test
+    fun `Test dont serialize a lazy object`() {
+        val peru = Country()
+        peru.name = "Peru"
+        peru.save()
+
+        val region = Region()
+        region.name = "La Libertad"
+        region.country = peru
+        region.save()
+
+        val regionToSerialize = Region.objects.first()
+        assertThat(gson.toJson(regionToSerialize)).isEqualTo("{\"country\":{\"id\":1},\"name\":\"La Libertad\",\"id\":1}")
     }
 
     @Test

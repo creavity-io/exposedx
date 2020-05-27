@@ -128,6 +128,7 @@ class EntityQueryTest {
         assertThat(results.toList()[0].name).isEqualTo("Argentina1")
         assertThat(results.toList()[1].name).isEqualTo("Australia1")
         assertThat(results.toList()[2].name).isEqualTo("Peru")
+
     }
 
 

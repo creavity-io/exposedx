@@ -32,13 +32,14 @@ fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.new(init: E.()
  * Reloads entity fields from database as new object.
  * @param flush whether pending entity changes should be flushed previously
  */
-fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.reload(entity: E, flush: Boolean = false): E = entity.also {
+fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.reload(entity: E, reset: Boolean=false, flush: Boolean = false): E = entity.also {
     localTransaction {
+        entity.db = this.db
         if (flush) {
             _cache.flush()
         }
-        entity.reset()
-        entity.readValues = findResultRowById(entity.id) ?: throw EntityNotFoundException(entity.id, this@reload)
+        if(reset) entity.reset()
+        entity._readValues = findResultRowById(entity.id) ?: throw EntityNotFoundException(entity.id, this@reload)
         _cache[this@reload].store(entity)
     }
 }
@@ -91,9 +92,9 @@ abstract class EntityManager<ID : Comparable<ID>, E : Entity<ID>, M : EntityMana
 
 
 
-    open fun save(prototype: E): E = prototype.also {
+    open fun save(prototype: E, columns: Array<out Column<*>>): E = prototype.also {
         localTransaction {
-            _cache.scheduleSave(this@EntityManager, prototype)
+            _cache.scheduleSave(this@EntityManager, prototype, columns)
         }
     }
 

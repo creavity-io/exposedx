@@ -97,6 +97,27 @@ class EntityOneToManyTest {
     }
 
     @Test
+    fun `Test filter by one to many with id`() {
+
+        Country.new { name = "Argentina" }
+        Country.new { name = "Australia" }
+        val peru = Country.new { name = "Peru" }
+        val lima = Region.new { name = "Lima"; country = peru }
+
+        val school = School.new { name = "Escuela 1"; region = lima }
+        School.new { name = "Escuela 2"; region = lima }
+        School.new { name = "Colegio"; region = lima }
+
+
+        transaction {
+            val result = Region.objects.filter {
+                schools.id eq school.id
+            }.first()
+            assertThat(result.id).isEqualTo(lima.id)
+        }
+    }
+
+    @Test
     fun `Test filter by deep one to many`() {
 
         Country.new { name = "Argentina" }

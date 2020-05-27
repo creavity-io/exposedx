@@ -19,19 +19,19 @@ abstract class MutableResultRow<ID : Comparable<ID>> {
 
     private var _flushAction: FlushAction = FlushAction.NONE
 
-    private var _readValues: ResultRow? = null
+    internal var _readValues: ResultRow? = null
 
     private val writeValues = LinkedHashMap<Column<Any?>, Any?>()
 
-    private var savedValues: Map<Column<Any?>, Any?>? = null
+    private var savedValues: MutableMap<Column<Any?>, Any?>? = null
 
     private var lazyInit: (() -> ResultRow)? = null
 
-    internal var db: Database? = null; private set
+    internal var db: Database? = null;
 
-    val isLoaded get() = _readValues != null
+    fun isLoaded() = _readValues != null || this.lazyInit == null
 
-    init {
+            init {
         this.id = DaoEntityID(null, table)
     }
 
@@ -77,44 +77,70 @@ abstract class MutableResultRow<ID : Comparable<ID>> {
         }
 
 
-    fun reset() {
+    internal fun reset() {
         this.writeValues.clear()
         this.savedValues = null
         this._flushAction = FlushAction.NONE
     }
 
     @Suppress("UNCHECKED_CAST")
-    internal fun markForSave(db: Database) {
+    internal fun markForSave(db: Database, columns: Array<out Column<*>>) {
         if(_flushAction == FlushAction.NONE) {
             _flushAction = if (this.id._value == null) FlushAction.INSERT else FlushAction.UPDATE
         }
-        this.savedValues = prepareDataToWrite()
+        this.savedValues = this.savedValues ?: mutableMapOf()
+        this.savedValues!!.putAll(prepareDataToWrite(columns))
+
+        if(columns.isEmpty()) {
+            this.writeValues.clear()
+        } else {
+            columns.forEach { this.writeValues.remove(it) }
+        }
         this.db = db
+    }
+    private fun MutableMap<Column<Any?>, Any?>.filterColumns(columns: Array<out Column<*>>): Map<Column<Any?>, Any?> {
+        if (columns.isEmpty()) return this
+        return this.filterKeys { columns.contains(it)  }
     }
     /*
     * readValues + writeValues
     * */
     @Suppress("UNCHECKED_CAST")
-    private fun prepareDataToWrite(): MutableMap<Column<Any?>, Any?> {
-        if (flushAction == FlushAction.UPDATE) return writeValues
+    private fun prepareDataToWrite(columns: Array<out Column<*>>): Map<Column<Any?>, Any?> {
+        if (flushAction == FlushAction.UPDATE) return writeValues.filterColumns(columns) // only updated
+
 
         val dataToWrite = mutableMapOf<Column<Any?>, Any?>()
         dataToWrite.putAll(writeValues)
-        readValues.fieldIndex.keys.filter { readValues.hasValue(it) && it !in this.writeValues }.forEach {
-            dataToWrite[it as Column<Any?>] = readValues[it]
+
+        // if new return with default values.
+        readValues.fieldIndex.keys.forEach {
+            it as Column<Any?>
+
+            if(this.id._value==null && readValues.hasValue(it) && it !in this.writeValues) {
+                dataToWrite[it] = readValues[it]
+            }
+            if(dataToWrite.containsKey(it) || this.id._value==null) { //validate only when is new
+                if(!it.columnType.nullable && !it.columnType.isAutoInc && dataToWrite[it] == null) {
+                    throw IllegalArgumentException("${table.tableName}.${it.name} column not allow nulls")
+                }
+            }
         }
-        return dataToWrite
+
+        return dataToWrite.filterColumns(columns)
     }
 
     internal fun save(fn: (Column<Any?>, Any?) -> Unit) {
-        if(updateOnFlush) { markForSave(db!!) }
+        if(updateOnFlush) { markForSave(db!!, emptyArray()) }
 
         savedValues?.forEach { (column, value) ->
             fn(column, checkValue(value))
         }
 
         storeWrittenValues()
-        reset()
+
+        this.savedValues = null
+        this._flushAction = FlushAction.NONE
     }
 
     private fun checkValue(value: Any?): Any? {
@@ -139,13 +165,14 @@ abstract class MutableResultRow<ID : Comparable<ID>> {
 
     @Suppress("UNCHECKED_CAST")
     internal fun <T : Any?> getValue(column: Column<*>): T = (writeValues[column]?:
+                                                                savedValues?.get(column)?:
                                                                 readValues.let { // ejecuto el read values para obtener el by lazy
                                                                     references[column]
                                                                 } ?: readValues[column]) as T
 
     @Suppress("UNCHECKED_CAST")
     internal fun <T : Any?> setValue(column: Column<*>, value: T) {
-        val currentValue = readValues.getOrNull(column)
+        val currentValue = savedValues?.get(column) ?: _readValues?.getOrNull(column)
         if (currentValue == value || references[column] == value) {
             writeValues.remove(column)
             return

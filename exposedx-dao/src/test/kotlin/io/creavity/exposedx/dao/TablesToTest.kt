@@ -23,12 +23,16 @@ class Country: IntEntity() {
 abstract class RegionTable: IntEntityManager<Region, RegionTable>() {
     val name by varchar("name", 255)
     val country by manyToOne("country_id", Country)
+    val isActive by bool("is_active").default(false)
+
 }
 
 class Region: IntEntity() {
     companion object Table: RegionTable()
     var name by Table.name
     var country by Table.country
+    var isActive by Table.isActive
+
 }
 
 open class SchoolTable: IntEntityManager<School, SchoolTable>() {

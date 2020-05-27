@@ -37,13 +37,16 @@ abstract class Entity<ID : Comparable<ID>> : EntityDelegator<ID>, MutableResultR
         table.delete(this.id)
     }
 
-    fun save(): Entity<ID> {
-        return this.table.save(this)
+    fun save(vararg columns: Column<*>): Entity<ID> {
+        return this.table.save(this, columns)
     }
 
-    fun reload() {
-        this.table.reload(this, true)
+    fun reload(reset: Boolean = false) {
+        this.table.reload(this, reset, true)
     }
+
+    fun getOrNull(): Entity<ID>? = kotlin.runCatching{ this.apply { reload() } }.getOrNull()
+
 
     /**
     * Used by EntityGsonAdapter, because I cant infer ID class, If you found other way fell free from change it.
@@ -51,4 +54,4 @@ abstract class Entity<ID : Comparable<ID>> : EntityDelegator<ID>, MutableResultR
     protected abstract val idClass: Class<ID>
 }
 
-
+fun Entity<*>.isNew() = this.id._value == null
