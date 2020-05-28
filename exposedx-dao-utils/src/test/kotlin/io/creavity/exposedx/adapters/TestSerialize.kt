@@ -3,7 +3,9 @@ package io.creavity.exposedx.adapters
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonSerializer
-import io.creavity.exposedx.dao.entities.Entity
+import io.creavity.exposedx.dao.entities.*
+import io.creavity.exposedx.dao.entities.generics.IntEntity
+import io.creavity.exposedx.dao.entities.generics.IntEntityManager
 import io.creavity.exposedx.dao.manager.new
 import io.creavity.exposedx.dao.queryset.first
 import io.mockk.clearMocks
@@ -137,6 +139,27 @@ class TestSerialize {
         region.country = peru
         assertThat(gson.toJson(region)).isEqualTo("{\"country\":{\"name\":\"Peru\"}}")
     }
+
+    @Test
+    fun `Test deserialize with 0 id for UUIDManager`() {
+
+        val json = """{"id": "", "name":"San Juan"}"""
+
+        val obj = gson.fromJson(json, CountryUUID::class.java)
+        assertThat(obj.id._value).isNull()
+        assertThat(obj.isNew()).isTrue()
+    }
+
+    @Test
+    fun `Test deserialize with 0 id`() {
+        val json = """{"id": 0, "name":"San Juan","region": {"id": 0, "country":{"id": 0, "name":"Peru"},"name":"La Libertad"}, "secondaryRegion": null}"""
+
+        val obj = gson.fromJson(json, School::class.java)
+        assertThat(obj.id._value).isNull()
+        assertThat(obj.isNew()).isTrue()
+        assertThat(obj.region.isNew()).isTrue()
+        assertThat(obj.region.country.isNew()).isTrue()
+    }
 }
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -220,4 +243,21 @@ class IntegrationTestSerialize {
         assertThat(Country.objects.count()).isEqualTo(1)
         assertThat(Country.objects.filter { name eq "China" }.first().id.value).isEqualTo(1)
     }
+
+    @Test
+    fun `Test serialize a with saved objects in transaction`() {
+        transaction {
+            val peru = Country()
+            peru.name = "Peru"
+            peru.save()
+
+            val region = Region()
+            region.name = "La Libertad"
+            region.country = peru
+            region.save()
+
+            assertThat(gson.toJson(region)).isEqualTo("{\"country\":{\"name\":\"Peru\",\"id\":1},\"name\":\"La Libertad\",\"id\":1}")
+        }
+    }
+
 }

@@ -1,13 +1,11 @@
 package io.creavity.exposedx.dao
 
+import io.creavity.exposedx.dao.manager.new
 import io.mockk.spyk
 import org.assertj.core.api.Assertions.assertThat
-import io.creavity.exposedx.dao.manager.flushCache
-import io.creavity.exposedx.dao.manager.new
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.*
-import java.lang.Exception
 import java.sql.Connection
 import java.sql.DriverManager
 
@@ -112,6 +110,17 @@ class EntityOperationsTest {
     }
 
     @Test
+    fun `Test save entities relationed`() {
+
+        transaction {
+            val peru = Country.new { name = "Peru" }
+            val trujillo = Region.new { name = "Trujillo"; country=peru }
+            val school = School.new { name = "Colegio A"; region=trujillo }
+        }
+    }
+
+
+    @Test
     fun `Check Id after save`() {
         val entity1 = Country.new { name = "Peru" }
         val entity2 = Country.new { name = "Chile" }
@@ -131,6 +140,7 @@ class EntityOperationsTest {
         transaction {
             val entity3 = Country.objects.get(3)!!
             entity3.name = "Ecuador"
+            entity3.isActive = true
             entity3.save()
         }
 
@@ -140,6 +150,10 @@ class EntityOperationsTest {
 
             val count2 = Country.select { Country.name eq "Brazil"}.count()
             assertThat(count2).isEqualTo(0)
+
+            val count3 = Country.select { Country.isActive eq true}.count()
+            assertThat(count3).isEqualTo(1)
+
         }
     }
 

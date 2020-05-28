@@ -34,12 +34,11 @@ fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.new(init: E.()
  */
 fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.reload(entity: E, reset: Boolean=false, flush: Boolean = false): E = entity.also {
     localTransaction {
-        entity.db = this.db
         if (flush) {
             _cache.flush()
         }
         if(reset) entity.reset()
-        entity._readValues = findResultRowById(entity.id) ?: throw EntityNotFoundException(entity.id, this@reload)
+        entity.init(this.db, entity.id, findResultRowById(entity.id) ?: throw EntityNotFoundException(entity.id, this@reload))
         _cache[this@reload].store(entity)
     }
 }
@@ -118,6 +117,10 @@ abstract class EntityManager<ID : Comparable<ID>, E : Entity<ID>, M : EntityMana
     infix fun inList(list: List<E>) = this.id.inList(list.map { it.id })
 
     infix fun  Expression<String?>.contains(obj: String) = this.upperCase() like obj.toUpperCase()
+
+    fun flush() {
+        if(transactionExist) _cache.flush(listOf(this))
+    }
 
 }
 

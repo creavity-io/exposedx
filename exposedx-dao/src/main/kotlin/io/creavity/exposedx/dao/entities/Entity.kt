@@ -55,3 +55,4 @@ abstract class Entity<ID : Comparable<ID>> : EntityDelegator<ID>, MutableResultR
 }
 
 fun Entity<*>.isNew() = this.id._value == null
+fun Entity<*>.flush() = this.table.flush()

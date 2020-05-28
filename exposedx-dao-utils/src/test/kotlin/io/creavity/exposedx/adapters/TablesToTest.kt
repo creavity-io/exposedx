@@ -3,6 +3,8 @@ package io.creavity.exposedx.adapters
 import io.creavity.exposedx.dao.entities.*
 import io.creavity.exposedx.dao.entities.generics.IntEntity
 import io.creavity.exposedx.dao.entities.generics.IntEntityManager
+import io.creavity.exposedx.dao.entities.generics.UUIDEntity
+import io.creavity.exposedx.dao.entities.generics.UUIDEntityManager
 import io.creavity.exposedx.dao.manager.asList
 import io.creavity.exposedx.dao.manager.oneToMany
 
@@ -52,3 +54,15 @@ val Region.schools by Region.schools.asList()
 val Region.schoolsSecondary by Region.schoolsSecondary.asList()
 val Country.regions by Country.regions.asList()
 
+
+open class CountryUUIDTable: UUIDEntityManager<CountryUUID, CountryUUIDTable>() {
+    val name by varchar("name", 255)
+}
+
+
+
+class CountryUUID : UUIDEntity() {
+    companion object Table: CountryUUIDTable()
+
+    var name by Table.name
+}

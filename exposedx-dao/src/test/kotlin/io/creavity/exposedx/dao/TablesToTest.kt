@@ -12,11 +12,15 @@ import io.creavity.exposedx.dao.manager.oneToMany
 
 open class CountryTable: IntEntityManager<Country, CountryTable>() {
     val name by varchar("name", 255)
+    val isActive by bool("is_active").default(false)
+
 }
 
 class Country: IntEntity() {
     companion object Table: CountryTable()
     var name by Table.name
+    var isActive by Table.isActive
+
 }
 
 

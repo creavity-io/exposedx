@@ -19,7 +19,7 @@ abstract class MutableResultRow<ID : Comparable<ID>> {
 
     private var _flushAction: FlushAction = FlushAction.NONE
 
-    internal var _readValues: ResultRow? = null
+    private var _readValues: ResultRow? = null
 
     private val writeValues = LinkedHashMap<Column<Any?>, Any?>()
 
@@ -82,6 +82,7 @@ abstract class MutableResultRow<ID : Comparable<ID>> {
         this.savedValues = null
         this._flushAction = FlushAction.NONE
     }
+
 
     @Suppress("UNCHECKED_CAST")
     internal fun markForSave(db: Database, columns: Array<out Column<*>>) {
