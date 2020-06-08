@@ -1,10 +1,10 @@
 package io.creavity.exposedx.dao.queryset
 
-import io.creavity.exposedx.dao.manager.EntityManager
+import io.creavity.exposedx.dao.tables.EntityTable
 import org.jetbrains.exposed.sql.*
 
 
-fun EntityManager<*, *, *>.addRelatedJoin(table: Table, newJoin: (ColumnSet.() -> ColumnSet)) {
+fun EntityTable<*, *, *>.addRelatedJoin(table: Table, newJoin: (ColumnSet.() -> ColumnSet)) {
     if(_parent != null) {
         _parent!!.addRelatedJoin(table, newJoin)
     } else {
@@ -33,7 +33,7 @@ fun joinWith(leftTable: Table, rightTable: Table, column: Column<*>): (ColumnSet
 
 
 
-fun EntityManager<*, *, *>.joinWithParent() {
+fun EntityTable<*, *, *>.joinWithParent() {
     _parent?.let { leftTable ->
         leftTable.joinWithParent() // join parent with his parent
         val parentAlias = leftTable.aliasRelated

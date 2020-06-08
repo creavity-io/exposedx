@@ -1,17 +1,19 @@
-package io.creavity.exposedx.dao.manager
+package io.creavity.exposedx.dao.tables
 
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 import io.creavity.exposedx.dao.entities.Entity
 import io.creavity.exposedx.dao.entities.FlushAction
+import io.creavity.exposedx.dao.entities.OneToManyQuery
 import io.creavity.exposedx.dao.entities.identifiers.DaoEntityID
+import io.creavity.exposedx.dao.entities.lazyWrap
 import org.jetbrains.exposed.sql.*
 import kotlin.collections.LinkedHashMap
 
 abstract class MutableResultRow<ID : Comparable<ID>> {
     private var references = mutableMapOf<Column<*>, Entity<*>>()
 
-    internal abstract val table: IdTable<ID>
+    abstract val table: IdTable<ID>
 
     val id: EntityID<ID>
 
@@ -31,7 +33,7 @@ abstract class MutableResultRow<ID : Comparable<ID>> {
 
     fun isLoaded() = _readValues != null || this.lazyInit == null
 
-            init {
+    init {
         this.id = DaoEntityID(null, table)
     }
 
@@ -191,11 +193,14 @@ abstract class MutableResultRow<ID : Comparable<ID>> {
     internal fun buildReferences() {
         this.readValues.fieldIndex.keys.filterIsInstance(Column::class.java).mapNotNull { column ->
             column.referee?.table?.let { reference ->
-                if(reference is EntityManager<*,*,*> && readValues.hasValue(column)) {
-                    val manager = reference as EntityManager<Comparable<Any>, Entity<Comparable<Any>>,*>
+                if(reference is EntityTable<*,*,*> && readValues.hasValue(column)) {
+                    val manager = reference as EntityTable<Comparable<Any>, Entity<Comparable<Any>>,*>
                     if(readValues[column]!=null) {
+                        // Inicializo el objeto como lazy y el id con el id de la columna
                         column to (manager.lazyWrap(readValues[column] as EntityID<Comparable<Any>>, db!!))
-                    }else {
+                    }else if(!column.columnType.nullable) {
+                        column to manager.createInstance()
+                    } else {
                         null
                     }
                 } else {
@@ -208,13 +213,35 @@ abstract class MutableResultRow<ID : Comparable<ID>> {
         }
     }
 
-    private var oneToManyQueries = mutableMapOf<Column<*>, OneToManyQuery<*,*,*>>()
+    private var oneToManyQueries = mutableMapOf<Column<*>, OneToManyQuery<*, *, *>>()
 
     @Suppress("UNCHECKED_CAST")
-    internal fun <E : Entity<ID>, M : EntityManager<ID, E, M>> getOneToMany(column: Column<EntityID<ID>>): OneToManyQuery<ID, E, M> {
+    internal fun <E : Entity<ID>, M : EntityTable<ID, E, M>> getOneToMany(column: Column<EntityID<ID>>): OneToManyQuery<ID, E, M> {
         return oneToManyQueries.getOrPut(column) {
             val table = column.table as M
             OneToManyQuery(table, column.table.select { column eq this@MutableResultRow.id })
         } as OneToManyQuery<ID, E, M>
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as MutableResultRow<*>
+
+        if (table != other.table) return false
+        if (id._value != other.id._value) return false
+
+        if (this !== other) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = table.hashCode()
+        result = 31 * result + id._value.hashCode()
+        return result
+    }
+
+
 }

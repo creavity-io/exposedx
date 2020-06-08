@@ -1,25 +1,26 @@
-package io.creavity.exposedx.dao.manager
+package io.creavity.exposedx.dao.entities
 
-import io.creavity.exposedx.dao.entities.Entity
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 import io.creavity.exposedx.dao.exceptions.EntityNotFoundException
+import io.creavity.exposedx.dao.tables.EntityTable
+import io.creavity.exposedx.dao.tables.transactionExist
 import org.jetbrains.exposed.sql.*
 
 
-fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrapRows(rows: SizedIterable<ResultRow>, isForUpdate: Boolean = false): SizedIterable<E> = rows mapLazy {
+fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.wrapRows(rows: SizedIterable<ResultRow>, isForUpdate: Boolean = false): SizedIterable<E> = rows mapLazy {
     wrapRow(it, isForUpdate)
 }
 
-fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrapRows(rows: SizedIterable<ResultRow>, alias: Alias<IdTable<*>>, isForUpdate: Boolean = false) = rows mapLazy {
+fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.wrapRows(rows: SizedIterable<ResultRow>, alias: Alias<IdTable<*>>, isForUpdate: Boolean = false) = rows mapLazy {
     wrapRow(it, alias, isForUpdate)
 }
 
-fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrapRows(rows: SizedIterable<ResultRow>, alias: QueryAlias, isForUpdate: Boolean = false) = rows mapLazy {
+fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.wrapRows(rows: SizedIterable<ResultRow>, alias: QueryAlias, isForUpdate: Boolean = false) = rows mapLazy {
     wrapRow(it, alias, isForUpdate)
 }
 
-fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrapRow(row: ResultRow, alias: Alias<IdTable<*>>, isForUpdate: Boolean = false): E {
+fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.wrapRow(row: ResultRow, alias: Alias<IdTable<*>>, isForUpdate: Boolean = false): E {
     require(alias.delegate == this) { "Alias for a wrong table ${alias.delegate.tableName} while ${this.tableName} expected" }
     val newFieldsMapping = row.fieldIndex.keys.mapNotNull { exp ->
         val column = exp as? Column<*>
@@ -34,7 +35,7 @@ fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrapRow(row: R
     return wrapRow(ResultRow.createAndFillValues(newFieldsMapping), isForUpdate)
 }
 
-fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrapRow(row: ResultRow, alias: QueryAlias, isForUpdate: Boolean = false): E {
+fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.wrapRow(row: ResultRow, alias: QueryAlias, isForUpdate: Boolean = false): E {
     require(alias.columns.any { (it.table as Alias<*>).delegate == this }) { "QueryAlias doesn't have any column from ${this.tableName} table" }
     val originalColumns = alias.query.set.source.columns
     val newFieldsMapping = row.fieldIndex.keys.mapNotNull { exp ->
@@ -55,10 +56,10 @@ fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrapRow(row: R
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
-fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrapRow(row: ResultRow, isForUpdate: Boolean = false): E = wrap(row, isForUpdate)
+fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.wrapRow(row: ResultRow, isForUpdate: Boolean = false): E = wrap(row, isForUpdate)
 
 @Suppress("UNCHECKED_CAST")
-internal fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrap(row: ResultRow, isForUpdate: Boolean = false): E {
+internal fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.wrap(row: ResultRow, isForUpdate: Boolean = false): E {
     val entityId = row[this.originalId]
     val found = _cache[this].find(entityId)?.apply { readValues = row }
     if (found != null) return found as E
@@ -70,7 +71,7 @@ internal fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.wrap(
 }
 
 @Suppress("UNCHECKED_CAST")
-internal fun <ID : Comparable<ID>, E : Entity<ID>> EntityManager<ID, E, *>.lazyWrap(id: EntityID<ID>, db: Database): E {
+internal fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.lazyWrap(id: EntityID<ID>, db: Database): E {
     if(transactionExist) {
         val found = _cache[this].find(id)
         if (found != null) return found as E

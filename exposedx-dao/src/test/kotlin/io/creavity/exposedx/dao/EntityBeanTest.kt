@@ -1,11 +1,6 @@
 package io.creavity.exposedx.dao
 
 import org.assertj.core.api.Assertions.assertThat
-import io.creavity.exposedx.dao.entities.*
-import io.creavity.exposedx.dao.entities.generics.IntEntity
-import io.creavity.exposedx.dao.entities.generics.IntEntityManager
-import io.creavity.exposedx.dao.manager.new
-import io.creavity.exposedx.dao.queryset.first
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 

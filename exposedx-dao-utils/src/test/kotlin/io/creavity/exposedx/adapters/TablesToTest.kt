@@ -2,14 +2,14 @@ package io.creavity.exposedx.adapters
 
 import io.creavity.exposedx.dao.entities.*
 import io.creavity.exposedx.dao.entities.generics.IntEntity
-import io.creavity.exposedx.dao.entities.generics.IntEntityManager
+import io.creavity.exposedx.dao.entities.generics.IntEntityTable
 import io.creavity.exposedx.dao.entities.generics.UUIDEntity
-import io.creavity.exposedx.dao.entities.generics.UUIDEntityManager
-import io.creavity.exposedx.dao.manager.asList
-import io.creavity.exposedx.dao.manager.oneToMany
+import io.creavity.exposedx.dao.entities.generics.UUIDEntityTable
+import io.creavity.exposedx.dao.entities.asList
+import io.creavity.exposedx.dao.entities.oneToMany
 
 
-open class CountryTable: IntEntityManager<Country, CountryTable>() {
+open class CountryTable: IntEntityTable<Country, CountryTable>() {
     val name by varchar("name", 255)
 }
 
@@ -19,7 +19,7 @@ class Country: IntEntity() {
 }
 
 
-abstract class RegionTable: IntEntityManager<Region, RegionTable>() {
+abstract class RegionTable: IntEntityTable<Region, RegionTable>() {
     val name by varchar("name", 255)
     val country by manyToOne("country", Country)
 }
@@ -30,7 +30,7 @@ class Region: IntEntity() {
     var country by Table.country
 }
 
-open class SchoolTable: IntEntityManager<School, SchoolTable>() {
+open class SchoolTable: IntEntityTable<School, SchoolTable>() {
     val name by varchar("name", 255)
     val region by manyToOne("region_id", Region)
     val secondaryRegion by manyToOptional("secondary_region_id", Region)
@@ -55,7 +55,7 @@ val Region.schoolsSecondary by Region.schoolsSecondary.asList()
 val Country.regions by Country.regions.asList()
 
 
-open class CountryUUIDTable: UUIDEntityManager<CountryUUID, CountryUUIDTable>() {
+open class CountryUUIDTable: UUIDEntityTable<CountryUUID, CountryUUIDTable>() {
     val name by varchar("name", 255)
 }
 

@@ -4,15 +4,12 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonSerializer
 import io.creavity.exposedx.dao.entities.*
-import io.creavity.exposedx.dao.entities.generics.IntEntity
-import io.creavity.exposedx.dao.entities.generics.IntEntityManager
-import io.creavity.exposedx.dao.manager.new
+import io.creavity.exposedx.dao.tables.new
 import io.creavity.exposedx.dao.queryset.first
 import io.mockk.clearMocks
 import io.mockk.spyk
 
 import org.assertj.core.api.Assertions.assertThat
-import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction

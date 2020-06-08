@@ -2,12 +2,10 @@ package io.creavity.exposedx.dao
 
 import io.mockk.spyk
 import org.assertj.core.api.Assertions.assertThat
-import io.creavity.exposedx.dao.manager.new
+import io.creavity.exposedx.dao.tables.new
 import io.creavity.exposedx.dao.queryset.first
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.*
 import java.sql.Connection

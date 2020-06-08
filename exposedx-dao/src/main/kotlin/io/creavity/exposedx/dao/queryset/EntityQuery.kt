@@ -3,9 +3,10 @@ package io.creavity.exposedx.dao.queryset
 import io.creavity.exposedx.dao.entities.Entity
 import org.jetbrains.exposed.dao.id.EntityID
 import io.creavity.exposedx.dao.entities.identifiers.DaoEntityID
-import io.creavity.exposedx.dao.manager.EntityManager
-import io.creavity.exposedx.dao.manager.CopiableObject
-import io.creavity.exposedx.dao.manager.wrapRow
+import io.creavity.exposedx.dao.exceptions.MultipleEntityReturned
+import io.creavity.exposedx.dao.tables.EntityTable
+import io.creavity.exposedx.dao.tables.CopiableObject
+import io.creavity.exposedx.dao.entities.wrapRow
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.statements.UpdateStatement
 import org.jetbrains.exposed.sql.transactions.TransactionManager
@@ -25,7 +26,7 @@ internal fun <T> localTransaction(statement: Transaction.() -> T): T {
     }
 }
 
-interface EntityQuery<ID : Comparable<ID>, E : Entity<ID>, T : EntityManager<ID, E, *>> {
+interface EntityQuery<ID : Comparable<ID>, E : Entity<ID>, T : EntityTable<ID, E, *>> {
     val rawQuery: Query
     operator fun iterator(): Iterator<E>
     fun filter(op: Op<Boolean>): EntityQuery<ID, E, T>
@@ -38,6 +39,7 @@ interface EntityQuery<ID : Comparable<ID>, E : Entity<ID>, T : EntityManager<ID,
     fun orderBy(vararg sort: String): EntityQuery<ID, E, T>
     fun filter(ids: List<ID>): EntityQuery<ID, E, T>
     fun filterByEntityIds(ids: List<EntityID<ID>>): EntityQuery<ID, E, T>
+    fun get(where: T.() -> Op<Boolean>): E?
     fun get(id: EntityID<ID>): E?
     fun get(id: ID): E?
     fun groupBy(vararg columns: Expression<*>): Query
@@ -52,8 +54,8 @@ interface EntityQuery<ID : Comparable<ID>, E : Entity<ID>, T : EntityManager<ID,
     fun count(): Long
     fun update(body: T.(UpdateStatement) -> Unit): Int
     fun forUpdate(updateFn: (E) -> Unit)
-    fun selectRelated(vararg tables: EntityManager<*, *, *>): EntityQuery<ID, E, T>
-    fun prefetchRelated(vararg tables: EntityManager<*, *, *>): EntityQuery<ID, E, T>
+    fun selectRelated(vararg tables: EntityTable<*, *, *>): EntityQuery<ID, E, T>
+    fun prefetchRelated(vararg tables: EntityTable<*, *, *>): EntityQuery<ID, E, T>
     fun distinct(): EntityQuery<ID, E, T>
 }
 
@@ -76,11 +78,14 @@ class EntitySizedIterable<ID : Comparable<ID>, E : Entity<ID>> constructor(val q
     }
 }
 
-open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManager<ID, E, *>>(val entityManager: T,
-                                                                                             override val rawQuery: Query) : EntityQuery<ID, E, T> {
+open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityTable<ID, E, *>>(val entityTable: T,
+                                                                                           override val rawQuery: Query) : EntityQuery<ID, E, T> {
 
-    private val selectRelatedTables = mutableSetOf<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>()
-    private val prefetchRelatedTables = mutableSetOf<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>()
+    @Deprecated("Use entity table instead", ReplaceWith("entityTable"))
+    val entityManager get() = entityTable
+
+    private val selectRelatedTables = mutableSetOf<EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>>()
+    private val prefetchRelatedTables = mutableSetOf<EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>>()
 
     override fun limit(size: Int, offset: Long): EntityQuery<ID, E, T> = entityQuery.apply { rawQuery.limit(size, offset) }
 
@@ -98,7 +103,7 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
                 column = it.substringAfter("-")
                 order = SortOrder.DESC
             }
-            val columnExpression = entityManager.columns.filter { it.name.equals(column) }.first()
+            val columnExpression = entityTable.columns.filter { it.name.equals(column) }.first()
             columnExpression to order
         }.toTypedArray())
     }
@@ -118,23 +123,23 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
             // todo: refactor, move this to other place.
             var table = it
             while (table.relatedColumnId != null) {
-                if (table.relatedColumnId!!.table == this@EntityQueryBase.entityManager) { // only if this table can handle it
+                if (table.relatedColumnId!!.table == this@EntityQueryBase.entityTable) { // only if this table can handle it
                     relatedcolumnsToFetch.getOrPut(table.relatedColumnId!!) { mutableListOf() }
                     break
                 } else {
-                    table = table.relatedColumnId!!.table as EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>
+                    table = table.relatedColumnId!!.table as EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>
                 }
             }
         }
         return relatedcolumnsToFetch
     }
 
-    private fun getParentTables(child: EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>): List<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>{
+    private fun getParentTables(child: EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>): List<EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>>{
         var table = child
-        val tables = mutableListOf<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>()
+        val tables = mutableListOf<EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>>()
         while (table.relatedColumnId != null) {
             tables.add(table)
-            table = table.relatedColumnId!!.table as EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>
+            table = table.relatedColumnId!!.table as EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>
         }
         return tables
     }
@@ -143,8 +148,8 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
         selectRelatedTables.forEach {
             val tables = getParentTables(it)
             tables.reversed().forEach { table ->
-                val leftTable: Table = (table.relatedColumnId?.table as EntityManager<*, *, *>?)?.aliasRelated
-                        ?: this.entityManager
+                val leftTable: Table = (table.relatedColumnId?.table as EntityTable<*, *, *>?)?.aliasRelated
+                        ?: this.entityTable
                 val newJoin = joinWith(leftTable, table.aliasRelated!!, table.relatedColumnId!!)
                 rawQuery.adjustColumnSet { newJoin() }
                 rawQuery.adjustSlice { this.slice(table.aliasRelated!!.columns + rawQuery.set.fields) }
@@ -165,14 +170,14 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
                 var table = it
                 while (table.relatedColumnId != null) {
                     table.wrapRow(row, table.aliasRelated!!, rawQuery.isForUpdate())
-                    table = table.relatedColumnId!!.table as EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>
+                    table = table.relatedColumnId!!.table as EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>
                 }
             }
-            entityManager.wrapRow(row, rawQuery.isForUpdate())
+            entityTable.wrapRow(row, rawQuery.isForUpdate())
         }.toList()// toList() execute
 
         relatedcolumnsToFetch.forEach { column, list ->
-            val table = column.referee!!.table as EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>
+            val table = column.referee!!.table as EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>
 
             // pass prefetch related to the child, if it can handle it will take and prefetch it.
             table.objects.filterByEntityIds(list).prefetchRelated(*prefetchRelatedTables.toTypedArray()).all()
@@ -190,8 +195,8 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
 
     override fun update(body: T.(UpdateStatement) -> Unit) = localTransaction {
         rawQuery.where?.let {
-            entityManager.update({ it }, body = { entityManager.body(it) })
-        } ?: entityManager.update(body = { entityManager.body(it) })
+            entityTable.update({ it }, body = { entityTable.body(it) })
+        } ?: entityTable.update(body = { entityTable.body(it) })
     }
 
     override fun forUpdate(updateFn: (E) -> Unit) = localTransaction {
@@ -204,16 +209,22 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
 
     override fun filter(where: T.() -> Op<Boolean>): EntityQuery<ID, E, T> = entityQuery.apply {
         // T es de tipo Table
-        val manager = (entityManager as CopiableObject<*>).copy() as T
+        val manager = (entityTable as CopiableObject<*>).copy() as T
         val exp = manager.where()
         manager.relatedJoin.forEach { _, joinFn ->
             rawQuery.adjustColumnSet { joinFn(this) }
         }
-        rawQuery.adjustWhere { exp }
+        rawQuery.andWhere { exp }
+    }
+
+    override fun get(where: T.() -> Op<Boolean>): E? {
+        val data = this.filter(where).all().toList()
+        if(data.count() > 1) throw MultipleEntityReturned()
+        return data.firstOrNull()
     }
 
     override fun exclude(where: T.() -> Op<Boolean>): EntityQuery<ID, E, T> = entityQuery.apply {
-        val manager = (entityManager as CopiableObject<*>).copy() as T
+        val manager = (entityTable as CopiableObject<*>).copy() as T
         val exp = manager.where()
         manager.relatedJoin.forEach { _, joinFn ->
             rawQuery.adjustColumnSet { joinFn(this) }
@@ -229,16 +240,16 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
         where.forEach { exclude(it) }
     }
 
-    override fun selectRelated(vararg tables: EntityManager<*, *, *>): EntityQuery<ID, E, T> = entityQuery.apply {
-        this.selectRelatedTables += tables.asList() as Collection<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>
+    override fun selectRelated(vararg tables: EntityTable<*, *, *>): EntityQuery<ID, E, T> = entityQuery.apply {
+        this.selectRelatedTables += tables.asList() as Collection<EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>>
     }
 
-    override fun prefetchRelated(vararg tables: EntityManager<*, *, *>): EntityQuery<ID, E, T> = entityQuery.apply {
-        this.prefetchRelatedTables += tables.asList() as Collection<EntityManager<Comparable<Any>, Entity<Comparable<Any>>, *>>
+    override fun prefetchRelated(vararg tables: EntityTable<*, *, *>): EntityQuery<ID, E, T> = entityQuery.apply {
+        this.prefetchRelatedTables += tables.asList() as Collection<EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>>
     }
 
-    override fun filterByEntityIds(ids: List<EntityID<ID>>): EntityQuery<ID, E, T> = filter { entityManager.originalId inList ids }
-    override fun filter(ids: List<ID>): EntityQuery<ID, E, T> = filterByEntityIds(ids.map { DaoEntityID(it, entityManager) })
+    override fun filterByEntityIds(ids: List<EntityID<ID>>): EntityQuery<ID, E, T> = filter { entityTable.originalId inList ids }
+    override fun filter(ids: List<ID>): EntityQuery<ID, E, T> = filterByEntityIds(ids.map { DaoEntityID(it, entityTable) })
     override fun get(id: EntityID<ID>): E? = localTransaction { filterByEntityIds(listOf(id)).all().firstOrNull() }
     override fun get(id: ID): E? = localTransaction { filter(listOf(id)).all().firstOrNull() }
 
@@ -246,9 +257,9 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
         if (!rawQuery.groupedByColumns.isEmpty() || rawQuery.having != null) throw Exception("Cant delete with group by or having.")
         // todo: remove from cache
         if (rawQuery.where == null) {
-            this@EntityQueryBase.entityManager.deleteAll()
+            this@EntityQueryBase.entityTable.deleteAll()
         } else {
-            this@EntityQueryBase.entityManager.deleteWhere(rawQuery.limit, rawQuery.offset) { rawQuery.where!! }
+            this@EntityQueryBase.entityTable.deleteWhere(rawQuery.limit, rawQuery.offset) { rawQuery.where!! }
         }
     }
 
@@ -257,7 +268,7 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
     override fun groupBy(vararg columns: Expression<*>) = rawQuery.groupBy(*columns)
 
     override fun copy(): EntityQueryBase<ID, E, T> =
-            selfConstructor.newInstance(entityManager, rawQuery.copy()).also {
+            selfConstructor.newInstance(entityTable, rawQuery.copy()).also {
                 it.selectRelatedTables.addAll(this.selectRelatedTables)
                 it.prefetchRelatedTables.addAll(this.prefetchRelatedTables)
             }
@@ -268,11 +279,11 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
 
     private val selfConstructor by lazy {
         try {
-            this.javaClass.getDeclaredConstructor(EntityManager::class.java, Query::class.java).also { constructor ->
+            this.javaClass.getDeclaredConstructor(EntityTable::class.java, Query::class.java).also { constructor ->
                 constructor.isAccessible = true
             }
         } catch (ex: NoSuchMethodException) {
-            error("EntityQuery need a constructor with entitymanager and query parameters.")
+            error("EntityQuery need a constructor with entityTable and query parameters.")
         }
     }
 
@@ -288,6 +299,7 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityManage
 }
 
 
-fun <ID : Comparable<ID>, E : Entity<ID>, T : EntityManager<ID, E, T>> EntityQuery<ID, E, T>.first() = this.all().first()
-fun <ID : Comparable<ID>, E : Entity<ID>, T : EntityManager<ID, E, T>> EntityQuery<ID, E, T>.firstOrNull() = this.all().firstOrNull()
-fun <ID : Comparable<ID>, E : Entity<ID>, T : EntityManager<ID, E, T>> EntityQuery<ID, E, T>.last() = this.all().last()
+fun <ID : Comparable<ID>, E : Entity<ID>, T : EntityTable<ID, E, T>> EntityQuery<ID, E, T>.first() = this.all().first()
+fun <ID : Comparable<ID>, E : Entity<ID>, T : EntityTable<ID, E, T>> EntityQuery<ID, E, T>.firstOrNull() = this.all().firstOrNull()
+fun <ID : Comparable<ID>, E : Entity<ID>, T : EntityTable<ID, E, T>> EntityQuery<ID, E, T>.last() = this.all().last()
+fun <ID : Comparable<ID>, E : Entity<ID>, T : EntityTable<ID, E, T>> EntityQuery<ID, E, T>.exists() = this.count() > 0

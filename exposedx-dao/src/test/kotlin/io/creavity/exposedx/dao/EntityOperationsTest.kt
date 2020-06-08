@@ -1,6 +1,6 @@
 package io.creavity.exposedx.dao
 
-import io.creavity.exposedx.dao.manager.new
+import io.creavity.exposedx.dao.tables.new
 import io.mockk.spyk
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.sql.*

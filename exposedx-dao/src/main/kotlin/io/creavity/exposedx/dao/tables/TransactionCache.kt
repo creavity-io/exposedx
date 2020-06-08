@@ -1,11 +1,8 @@
-package io.creavity.exposedx.dao.manager
+package io.creavity.exposedx.dao.tables
 
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
-import io.creavity.exposedx.dao.entities.Entity
 import io.creavity.exposedx.dao.entities.FlushAction
-import io.creavity.exposedx.dao.queryset.EntityQuery
-import io.creavity.exposedx.dao.queryset.EntityQueryBase
 import io.creavity.exposedx.dao.signals.EntityChangeType
 import io.creavity.exposedx.dao.signals.registerChange
 import org.jetbrains.exposed.sql.*

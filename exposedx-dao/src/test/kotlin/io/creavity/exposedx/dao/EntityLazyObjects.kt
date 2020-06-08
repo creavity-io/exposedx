@@ -4,7 +4,7 @@ import io.mockk.clearMocks
 import io.mockk.spyk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
-import io.creavity.exposedx.dao.manager.new
+import io.creavity.exposedx.dao.tables.new
 import io.creavity.exposedx.dao.queryset.first
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction

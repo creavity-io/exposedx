@@ -2,11 +2,7 @@ package io.creavity.exposedx.dao
 
 import io.mockk.spyk
 import org.assertj.core.api.Assertions.assertThat
-import io.creavity.exposedx.dao.entities.generics.IntEntity
-import io.creavity.exposedx.dao.entities.generics.IntEntityManager
-import io.creavity.exposedx.dao.entities.getValue
-import io.creavity.exposedx.dao.entities.manyToOne
-import io.creavity.exposedx.dao.manager.new
+import io.creavity.exposedx.dao.tables.new
 import io.creavity.exposedx.dao.queryset.first
 import io.creavity.exposedx.dao.queryset.last
 import org.jetbrains.exposed.sql.*

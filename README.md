@@ -13,11 +13,11 @@ Is a library over top of Exposed that implements a new DAO design, Exposed X is 
 For create tables, Exposed X use the same class for the manager and table as companion of Entity:
 
 ```kotlin
-open class CountryTable: IntEntityManager<Country, CountryTable>() {
+open class CountryTable: IntEntityTable<Country, CountryTable>() {
     val name by varchar("name", 255)
 }
 ``` 
-> The table should extends of EntityManager, and should be open
+> The table should extends of EntityTable, and should be open
 > Other thing to consider is that columns should be marked with "by" as delegator.
 
 The bean have to extend of Entity class and should have the Manager as companion.
@@ -32,7 +32,7 @@ We can reference the columns from `Country.name`, and create new instance from `
 ## One to Many
 
 ```kotlin
-open class CountryTable: IntEntityManager<Country, CountryTable>() {
+open class CountryTable: IntEntityTable<Country, CountryTable>() {
     val name by varchar("name", 255)
 }
 
@@ -40,7 +40,7 @@ class Country: IntEntity() {
     companion object Table: CountryTable()
     var name by Table.name
 }
-abstract class RegionTable: IntEntityManager<Region, RegionTable>() {
+abstract class RegionTable: IntEntityTable<Region, RegionTable>() {
     val name by varchar("name", 255)
     val country by manyToOne("country", Country)
 }

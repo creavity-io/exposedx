@@ -1,12 +1,11 @@
 package io.creavity.exposedx.dao.signals
 
 import org.jetbrains.exposed.dao.id.IdTable
-import io.creavity.exposedx.dao.manager.transactionCache
-import io.creavity.exposedx.dao.manager.flushCache
+import io.creavity.exposedx.dao.tables.transactionCache
+import io.creavity.exposedx.dao.tables.flushCache
 import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.statements.*
-import org.jetbrains.exposed.sql.targetTables
 
 class EntityLifecycleInterceptor : GlobalStatementInterceptor {
 

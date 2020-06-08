@@ -1,6 +1,5 @@
-package io.creavity.exposedx.dao.manager
+package io.creavity.exposedx.dao.tables
 
-import io.creavity.exposedx.dao.entities.Entity
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Column
