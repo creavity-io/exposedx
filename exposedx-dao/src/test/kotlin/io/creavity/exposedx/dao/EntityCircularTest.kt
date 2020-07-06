@@ -34,7 +34,7 @@ class EntityCircularTest {
     }
 
 
-    val UserTable.childs by oneToMany(User.parent, User)
+    val UserTable.childs by oneToManyRef(User.parent, User)
     val User.childs by User.childs.asList()
 
 

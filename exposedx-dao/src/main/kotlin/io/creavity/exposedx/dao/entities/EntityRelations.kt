@@ -42,7 +42,7 @@ class ManyToOneRelationRef<ID : Comparable<ID>, E : Entity<ID>, M : EntityTable<
 
 class ManyToOptionalRelationRef<ID : Comparable<ID>, E : Entity<ID>, M : EntityTable<ID, E, M>>(from: EntityTable<*,*,*>,
                                                                                                 name: String,
-                                                                                                val foreign: M,
+                                                                                                foreign: M,
                                                                                                 onDelete: ReferenceOption? = null,
                                                                                                 onUpdate: ReferenceOption? = null,
                                                                                                 fkName: String? = null) {

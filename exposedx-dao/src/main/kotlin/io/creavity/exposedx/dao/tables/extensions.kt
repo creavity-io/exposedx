@@ -29,8 +29,8 @@ fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.reload(entity: E
             _cache.flush()
         }
         if(reset) entity.reset()
+        _cache[this@reload].store(entity.id, entity)
         entity.init(this.db, entity.id, findResultRowById(entity.id) ?: throw EntityNotFoundException(entity.id, this@reload))
-        _cache[this@reload].store(entity)
     }
 }
 

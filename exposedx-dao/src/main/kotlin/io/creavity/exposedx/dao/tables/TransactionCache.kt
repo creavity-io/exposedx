@@ -25,8 +25,8 @@ internal class TransactionTableCache<ID : Comparable<ID>, T: IdTable<ID>>(val ta
 
     fun remove(id: EntityID<ID>) = data.remove(id.value)
 
-    fun store(row: MutableResultRow<ID>) {
-        data.compute(row.id.value) { _, current ->
+    fun store(id: EntityID<ID>, row: MutableResultRow<ID>) {
+        data.compute(id.value) { _, current ->
             if (current != null && current != row) error("Collision error: There are another resultrow with the same id in cache.")
             else row
         }
@@ -36,7 +36,7 @@ internal class TransactionTableCache<ID : Comparable<ID>, T: IdTable<ID>>(val ta
     fun scheduleSave(row: MutableResultRow<ID>, columns: Array<out Column<*>>) {
         row.markForSave(transaction.db, columns)
         when (row.flushAction) {
-            FlushAction.UPDATE -> store(row) // if detached, add to store
+            FlushAction.UPDATE -> store(row.id, row) // if detached, add to store
             FlushAction.INSERT -> inserts.add(row)
             else -> Unit
         }

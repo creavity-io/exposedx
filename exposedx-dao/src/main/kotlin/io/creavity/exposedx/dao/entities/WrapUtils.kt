@@ -65,8 +65,8 @@ internal fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.wrap(ro
     if (found != null) return found as E
 
     return createInstance().also {
+        _cache[this].store(entityId, it)
         it.init(_cache[this].transaction.db, entityId, row, isForUpdate)
-        _cache[this].store(it)
     }
 }
 
@@ -78,9 +78,9 @@ internal fun <ID : Comparable<ID>, E : Entity<ID>> EntityTable<ID, E, *>.lazyWra
     }
 
     return createInstance().also {
+        if(transactionExist) _cache[this].store(id, it)
         it.init(db, id) {
             this@lazyWrap.findResultRowById(id) ?: throw EntityNotFoundException(id, this@lazyWrap)
         }
-        if(transactionExist) _cache[this].store(it)
     }
 }

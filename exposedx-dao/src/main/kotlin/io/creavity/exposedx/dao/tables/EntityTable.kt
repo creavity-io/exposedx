@@ -21,7 +21,7 @@ open class DefaultEntityManager<ID : Comparable<ID>, E : Entity<ID>, M : EntityT
     open fun buildQuery(query: Query) = query
 
     open fun buildEntityQuery(query: Query): EntityQuery<ID, E, M>  = EntityQueryBase(entityTable as M, query)
-
+    @Deprecated("")
     open fun createColumns() {}
 }
 
