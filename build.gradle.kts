@@ -10,9 +10,17 @@ subprojects {
     apply(plugin = "tanvd.kosogor")
     apply(plugin = "maven-publish")
     repositories {
-        mavenLocal()
+        // mavenLocal()
         mavenCentral()
         maven("https://dl.bintray.com/kotlin/exposed")
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/creavity-io/Exposed")
+            credentials {
+                username = project.findProperty("GPR_USER") as String? ?: System.getenv("USERNAME")
+                password = project.findProperty("GPR_KEY") as String? ?: System.getenv("TOKEN")
+            }
+        }
     }
 
     publishing {
@@ -30,7 +38,7 @@ subprojects {
 }
 
 repositories {
-    // mavenLocal()
+   // mavenLocal()
     mavenCentral()
     jcenter()
 }

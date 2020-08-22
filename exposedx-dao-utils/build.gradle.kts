@@ -9,11 +9,10 @@ plugins {
 }
 
 dependencies {
-    implementation("org.jetbrains.exposed:exposed-core:0.24.1")
-    implementation("org.jetbrains.exposed:exposed-jdbc:0.24.1")
-    implementation("org.jetbrains.exposed:exposed-jodatime:0.24.1")
+    implementation("org.jetbrains.exposed:exposed-core:0.26.2")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.26.2")
+    implementation("org.jetbrains.exposed:exposed-jodatime:0.26.2")
     implementation("com.h2database", "h2", "1.4.200")
-
     implementation(project(":exposedx-dao"))
 
     implementation("com.google.code.gson:gson:2.8.5")
