@@ -1,13 +1,8 @@
 package io.creavity.exposedx.dao
 
+import io.creavity.exposedx.dao.entities.*
 import io.creavity.exposedx.dao.entities.generics.IntEntity
 import io.creavity.exposedx.dao.entities.generics.IntEntityTable
-import io.creavity.exposedx.dao.entities.getValue
-import io.creavity.exposedx.dao.entities.manyToOne
-import io.creavity.exposedx.dao.entities.manyToOptional
-import io.creavity.exposedx.dao.entities.nullable
-import io.creavity.exposedx.dao.entities.asList
-import io.creavity.exposedx.dao.entities.oneToManyRef
 
 
 open class CountryTable: IntEntityTable<Country, CountryTable>() {
@@ -53,6 +48,47 @@ class School : IntEntity() {
 }
 
 
+open class CompanyTable: IntEntityTable<Company, CompanyTable>() {
+    val name by varchar("name", 255)
+    val manager by oneToOne("manager_id", Manager)
+    val contactInfo by oneToOptional("contact_info_id", ContactInfo)
+}
+
+class Company : IntEntity() {
+    companion object Table: CompanyTable()
+
+    var name by Table.name
+    var manager by Table.manager
+    var contactInfo by Table.contactInfo.nullable()
+
+}
+
+open class ContactInfoTable: IntEntityTable<ContactInfo, ContactInfoTable>() {
+    val phone by varchar("phone", 255)
+    val address by varchar("address", 255)
+    val country by manyToOne("country", Country)
+}
+
+class ContactInfo : IntEntity() {
+    companion object Table: ContactInfoTable()
+    var phone by Table.phone
+    var address by Table.address
+    var country by Table.country
+}
+
+open class ManagerTable: IntEntityTable<Manager, ManagerTable>() {
+    val name by varchar("name", 255)
+    val country by manyToOne("country", Country)
+}
+
+class Manager : IntEntity() {
+    companion object Table: ManagerTable()
+    var name by Table.name
+    var country by Table.country
+}
+
+
+
 val RegionTable.schools by oneToManyRef(School.region, School)
 val RegionTable.schoolsSecondary by oneToManyRef(School.secondaryRegion, School)
 val CountryTable.regions by oneToManyRef(Region.country, Region)
@@ -60,5 +96,14 @@ val CountryTable.regions by oneToManyRef(Region.country, Region)
 val Region.schools by Region.schools.asList()
 val Region.schoolsSecondary by Region.schoolsSecondary.asList()
 val Country.regions by Country.regions.asList()
-val Country.region by Country.regions
 
+
+val ManagerTable.company by oneToOneRef(Company.manager, Company)
+val ContactInfoTable.company by oneToOneRef(Company.contactInfo, Company)
+val CountryTable.managers by oneToManyRef(Manager.country, Manager)
+val CountryTable.contactInfos by oneToManyRef(ContactInfo.country, ContactInfo)
+
+val Manager.company by Manager.company
+val ContactInfo.company by ContactInfo.company.nullable()
+val Country.managers by Country.managers.asList()
+val Country.contactInfos by Country.contactInfos.asList()

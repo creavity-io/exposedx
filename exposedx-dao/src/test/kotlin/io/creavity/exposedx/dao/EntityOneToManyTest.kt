@@ -51,8 +51,10 @@ class EntityOneToManyTest {
         val tujillo = Region.new { name = "Trujillo"; country = peru }
         val buenosAires = Region.new { name = "Buenos Aires"; country = argentina }
 
-        assertThat(peru.regions.count()).isEqualTo(2)
+        assertThat(peru.regions.count()).isEqualTo(2) // select count(*)
+        assertThat(peru.regions.all().count()).isEqualTo(2) // select *
     }
+
 
     @Test
     fun `Test foreach related`() {

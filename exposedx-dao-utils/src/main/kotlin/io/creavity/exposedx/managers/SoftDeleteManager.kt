@@ -8,7 +8,6 @@ import io.creavity.exposedx.dao.tables.EntityTable
 import io.creavity.exposedx.dao.queryset.EntityQuery
 import io.creavity.exposedx.dao.queryset.EntityQueryBase
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.Query
 import java.util.*
 
@@ -40,11 +39,11 @@ open class SoftDeleteManager<ID : Comparable<ID>, E : Entity<ID>, T : EntityTabl
 
 abstract class SoftDeleteTable<ID : Comparable<ID>, E : Entity<ID>, T : EntityTable<ID, E, T>>(name: String="") : EntityTable<ID, E, T>(name) {
 
-    override val manager = SoftDeleteManager(this)
+    override val entityManager = SoftDeleteManager(this)
 
     val isDeleted = bool("is_deleted").default(false)
 
-    val allObjects get() = manager.buildEntityQueryAllObjects()
+    val allObjects get() = entityManager.buildEntityQueryAllObjects()
 
 }
 

@@ -36,10 +36,10 @@ abstract class EntityTable<ID : Comparable<ID>, E : Entity<ID>, M : EntityTable<
 
     private val ctor = klass.constructors.first()
 
-    open val manager = DefaultEntityManager(this)
+    open val entityManager = DefaultEntityManager(this)
 
     override val columns: List<Column<*>> by lazy {
-        manager.createColumns()
+        entityManager.createColumns()
         super.columns
     }
 
@@ -70,15 +70,15 @@ abstract class EntityTable<ID : Comparable<ID>, E : Entity<ID>, M : EntityTable<
         this._parent = parent
     }
 
-    fun buildQuery(rawQuery: Query? = null) = manager.buildQuery(rawQuery ?: this.defaultQuery).copy()
+    fun buildQuery(rawQuery: Query? = null) = entityManager.buildQuery(rawQuery ?: this.defaultQuery).copy()
 
-    fun buildEntityQuery(rawQuery: Query? = null): EntityQuery<ID, E, M> = manager.buildEntityQuery(buildQuery())
+    fun buildEntityQuery(rawQuery: Query? = null): EntityQuery<ID, E, M> = entityManager.buildEntityQuery(buildQuery())
 
     fun findResultRowById(id: EntityID<ID>): ResultRow? = localTransaction { buildQuery().adjustWhere { this@EntityTable.originalId eq id }.firstOrNull() }
 
-    fun save(prototype: E, columns: Array<out Column<*>>): E = manager.save(prototype, columns)
+    fun save(prototype: E, columns: Array<out Column<*>>): E = entityManager.save(prototype, columns)
 
-    fun delete(id: EntityID<ID>) = manager.delete(id)
+    fun delete(id: EntityID<ID>) = entityManager.delete(id)
 
     open fun dbSave(prototype: E, columns: Array<out Column<*>>): E = prototype.also {
         localTransaction {

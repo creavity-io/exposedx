@@ -164,11 +164,18 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityTable<
         val relatedcolumnsToFetch = getColumnsToPrefetch()
 
         val results = execQuery().map { row ->
-            relatedcolumnsToFetch.forEach { column, list -> list.add(row[column] as EntityID<Comparable<Any>>) } // prefetch related.
-            selectRelatedTables.forEach {
-                // todo: refactor, move this to other place.
-                var table = it
+            relatedcolumnsToFetch.forEach { (column, list) ->
+                if(row[column] != null) {
+                    list.add(row[column] as EntityID<Comparable<Any>>)
+                }
+            } // prefetch related.
+            selectRelatedTables.forEach { tableToPrefetch ->
+                // todo: refactor, move select related out of entity query.
+                var table = tableToPrefetch
+
                 while (table.relatedColumnId != null) {
+                    val idColumn = table.aliasRelated!![table.originalId] as Column<Any?> // if is optional.
+                    if(row[idColumn] == null) break
                     table.wrapRow(row, table.aliasRelated!!, rawQuery.isForUpdate())
                     table = table.relatedColumnId!!.table as EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>
                 }
@@ -176,7 +183,7 @@ open class EntityQueryBase<ID : Comparable<ID>, E : Entity<ID>, T : EntityTable<
             entityTable.wrapRow(row, rawQuery.isForUpdate())
         }.toList()// toList() execute
 
-        relatedcolumnsToFetch.forEach { column, list ->
+        relatedcolumnsToFetch.forEach { (column, list) ->
             val table = column.referee!!.table as EntityTable<Comparable<Any>, Entity<Comparable<Any>>, *>
 
             // pass prefetch related to the child, if it can handle it will take and prefetch it.

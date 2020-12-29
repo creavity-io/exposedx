@@ -124,52 +124,5 @@ class EntityLazyObjects {
         }
     }
 
-    @Test
-    fun `Test lazy prefetch related querys`() {
-        val c1 = Country.new  { name="Country" }
-        val r = Region.new { name = "Region"; country = c1}
-        val r2 = Region.new { name = "Region 2"; country = c1}
-        School.new { name = "School"; region = r }
-        School.new { name = "School"; region = r }
-        School.new { name = "School"; region = r2 }
-        School.new { name = "School"; region = r2 }
-
-        clearMocks(connection)
-        var schools: Iterable<School> = listOf()
-        transaction {
-            schools = School.objects.prefetchRelated(School.region, School.region.country).all()
-            verify(exactly = 3) { this@EntityLazyObjects.connection.prepareStatement(any(), any<Int>()) }
-        }
-
-        clearMocks(connection)
-        transaction {
-            assertThat(schools.first().region.country.name).isEqualTo("Country") // use cached objects
-            verify(exactly = 0) { this@EntityLazyObjects.connection.prepareStatement(any(), any<Int>()) }
-        }
-    }
-
-    @Test
-    fun `Test lazy select related querys`() {
-        val c1 = Country.new  { name="Country" }
-        val r = Region.new { name = "Region"; country = c1}
-        val r2 = Region.new { name = "Region 2"; country = c1}
-        School.new { name = "School"; region = r }
-        School.new { name = "School"; region = r }
-        School.new { name = "School"; region = r2 }
-        School.new { name = "School"; region = r2 }
-
-        clearMocks(connection)
-        var schools: Iterable<School> = listOf()
-        transaction {
-            schools = School.objects.selectRelated(School.region.country).all()
-            verify(exactly = 1) { this@EntityLazyObjects.connection.prepareStatement(any(), any<Int>()) }
-        }
-
-        clearMocks(connection)
-        transaction {
-            assertThat(schools.first().region.country.name).isEqualTo("Country") // use cached objects
-            verify(exactly = 0) { this@EntityLazyObjects.connection.prepareStatement(any(), any<Int>()) }
-        }
-    }
 }
 
